@@ -3,6 +3,7 @@
 	This macro calculates the grain boundary density assuming the grain boundary is shared by two grains.
 	It also adds additional geometrical calculations Peter J. Lee 6/17/2016 - 9/28/2016.
 	v171009 Adds additional aspect ratio variants.
+	v180223 Adds hexagonal geometry and a couple of volumetric examples from Russ
 */
 macro "Add Additional Geometrical Analyses to Results" {
 	/* v171023 */
@@ -19,6 +20,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 	supminus = fromCharCode(0x207B);
 	supone = fromCharCode(0x00B9); /* UTF-16 (hex) C/C++/Java source code 	"\u00B9" */
 	suptwo = fromCharCode(0x00B2); /* UTF-16 (hex) C/C++/Java source code 	"\u00B2" */
+	supthree = fromCharCode(0x00B2); /* UTF-16 (hex) C/C++/Java source code 	"\u00B3" */
 
 	checkForRoiManager();
 	checkForResults();
@@ -42,18 +44,34 @@ macro "Add Additional Geometrical Analyses to Results" {
 			setResult("Width\(px\)", i, round((getResult("Width", i))/lcf));
 			setResult("Height\(px\)", i, round((getResult("Height", i))/lcf));
 		}
-		setResult("Angle_0-90", i, abs((getResult("Angle", i))-90));
-		setResult("FeretAngle_0-90", i, abs((getResult("FeretAngle", i))-90));
 		P = getResult("Perim.",i);
 		A = getResult("Area",i);
+		BW = getResult("Width", i); /* Bounding rectangle width */
+		BH = getResult("Height", i); /* Bounding rectangle height */
+		MajorR = getResult("Major", i)/2; MinorR = getResult("Minor", i)/2;  /* Obtain major and minor axis radii for Ramanujan's formula */
+		PE = PI * ((3*(MajorR + MinorR)) - sqrt((3*MajorR + MinorR)*(MajorR + 3*MinorR))); /* Perimeter of fitted ellipse from Ramanujan's first approximation */;
+		Feret = getResult("Feret", i);
+		MinFeret = getResult("MinFeret", i);
+		ARF = Feret/MinFeret;
+		setResult("AR_Feret", i, ARF); /* adds fitted ellipse aspect ratio. */
+		ARB = BH/BW; /* Bounding rectangle aspect ratio */
+		if (ARB <= 1) ARB = 1/ARB;
+		setResult("AR_Box", i, ARB); /* adds rectangular bounding box aspect ratio. */
+		/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
+		setResult("Round_Feret", i, 4*A/(PI * Feret * Feret)); /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
+		setResult("Compact_Feret", i, (sqrt(A*4/PI))/Feret); /* Adds Compactness, using Feret as maximum diameter */
+		setResult("Angle_0-90", i, abs((getResult("Angle", i))-90));
+		setResult("FeretAngle_0-90", i, abs((getResult("FeretAngle", i))-90));
+		setResult("Convexity", i, PE/P); /* Convexity using the calculated elliptical fit to obtain a convex perimeter */
 		DA = 2*(sqrt(A/PI));  /* Adds Darea-equiv (AKA Heywood diameter) while we are at it. */
 		setResult("Da_equiv" + "\(" + unit + "\)", i, DA); /* adds new Da* column to end of results table - remember no spaces allowed in label. */
 		DP = P/PI;  /* Adds Dperimeter-equiv while we are at it. */
 		setResult("Dp_equiv" + "\(" + unit + "\)", i, DP); /* Adds new Dp* column to end of results table - remember no spaces allowed in label. */
+		setResult("Dsph_equiv" + "\(" + unit + "\)", i, exp((log(6*A*(Feret+MinFeret)/(2*PI)))/3)); /* Adds diameter based on a sphere - Russ page 182 but using the mean Feret diameters to calculate the volume */
 		W1 = 1/PI*(P-(sqrt(P*P-4*PI*A))); /* Round end ribbon thickness from repeating half-annulus - Lee & Jablonski LTSW'94 Devils Head Resort. */
 		setResult("FiberThAnn" + "\(" + unit + "\)", i, W1); /* Adds new Ribbon Thickness column to end of results table */
 		W2 = A/((0.5*P)-(2*(A/P))); /* Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
-		setResult("FiberThRuss1" + "\(" + unit + "\)", i, W2); /* Adds new fiberer width column to end of results table. */
+		setResult("FiberThRuss1" + "\(" + unit + "\)", i, W2); /* Adds new fiber width column to end of results table. */
 		W3 = A/(0.3181*P+sqrt(0.033102*P*P-0.41483*A)); /* Fiber width from Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
 		setResult("FiberThRuss2" + "\(" + unit + "\)", i, W3); /* Adds new fiber width column to end of results table. */
 		F1 = A/W1; /* Fiber Length from fiber width Lee and Jablonski (John C. Russ  The Image Processing Handbook 7th Ed. Page 612 0.25*(sqrt(P+(P*P-(16*A)))) is incorrect).*/
@@ -62,15 +80,10 @@ macro "Add Additional Geometrical Analyses to Results" {
 		setResult("FiberLRuss1" + "\(" + unit + "\)", i, F2); /* Adds new fiber length column to end of results table. */
 		F3 = 0.3181*P+sqrt(0.033102*P*P-0.41483*A); /* Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
 		setResult("FiberLRuss2" + "\(" + unit + "\)", i, F3); /* Adds new fiber length column to end of results table. */
+		setResult("CurlF1", i, BH/F1); /* Adds Curl for Fiber 1 calculated and bounding length */
 		G = P/(2*A);  /* Calculates Grain Boundary Density based on the GB shared between 2 grains. */
 		setResult("GBD" + "\(" + unit + supminus + supone + "\)", i, G); /* Adds new GB column to end of results table - remember no spaces allowed in label. */
 		GL = d2s(G,4); /* Reduce Decimal places for labeling. */
-		ARB = getResult("Height", i)/getResult("Width", i);
-		if (ARB <= 1) ARB = 1/ARB;
-		setResult("AR_Rect", i, ARB); /* adds bectangular bounding box aspect ratio. */
-		/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
-		ARF = getResult("Feret", i)/getResult("MinFeret", i);
-		setResult("AR_Feret", i, ARF); /* adds fitted ellipse aspect ratio. */
 		ARFL1 = F1/W1; /* Aspect ratio from fiber length approximation 1. */
 		setResult("AR_Fiber1", i, ARFL1); /* adds fitted ellipse aspect ratio. */
 		ARFL2 = F2/W2; /* Aspect ratio from fiber length approximation 2. */
@@ -79,8 +92,16 @@ macro "Add Additional Geometrical Analyses to Results" {
 		setResult("AR_Fiber3", i, ARFL3); /* adds fitted ellipse aspect ratio. */
 		Thinnes = 4*PI*A/(P*P); /* see http://imagej.net/Shape_Filter */
 		setResult("T_Ratio", i, Thinnes); /* adds Thinnes ratio. */
-		EXT = getResult("Area", i)/(getResult("Width", i)*getResult("Height", i));
-		setResult("Extent", i, EXT); /* adds Extent ratio. */
+		EXT = getResult("Area", i)/(BW * BH); 
+		setResult("Extent", i, EXT); /* adds Extent ratio, which is the object area/bounding rectangle area */
+		HexSide = sqrt((2*A)/(3*sqrt(3))); /* Some descriptions for 2D hexagonal close-packed structures */
+		setResult("HexSide" + "\(" + unit + "\)", i, HexSide); /* adds the length of each hexagonal side */
+		setResult("HexPerim" + "\(" + unit + "\)", i, 6 * HexSide); /* adds total perimeter of hexagon */
+		setResult("Hexagonality", i, 6*HexSide/P); /* adds a term to indicate accuracy of hexagon approximation */
+		VolPr = (PI/6) * Feret * MinFeret * MinFeret;
+		setResult("VolPr" + "\(" + unit + supthree + "\)", i, VolPr); /* adds prolate ellipsoid (an American football) volume: Hilliard 1968, Russ p. 189 */
+		VolOb = (PI/6) *MinFeret * Feret * Feret;
+		setResult("VolOb" + "\(" + unit + supthree + "\)", i, VolOb); /* adds oblate ellipsoid (a discus) volume: Hilliard 1968, Russ p. 189 */
 	}
 	updateResults();
 	// reset();
