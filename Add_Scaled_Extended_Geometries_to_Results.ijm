@@ -7,6 +7,7 @@
 	v180503 1st version using new Table functions introduced in ImageJ 1.52
 	v180503b Reverts to setResult for scaled data to give more flexibility on column labels
 	v180809 All measurements selectable. Adds C_Tilt. Restored missing Feret AR column.
+	v180815 Fixed typo.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 
@@ -90,7 +91,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 		if (outputResult[arrayRankMatch(analyses,"Dsph_equiv")]) setResult("Dsph_equiv" +unitLabel, i, exp((log(6*Areas[i]*(Ferets[i]+MinFerets[i])/(2*PI)))/3)); /* Adds diameter based on a sphere - Russ page 182 but using the mean Feret diameters to calculate the volume */
 		W1 = 1/PI*(Ps[i]-(sqrt(Ps[i]*Ps[i]-4*PI*Areas[i]))); /* Round end ribbon thickness from repeating half-annulus - Lee & Jablonski LTSW'94 Devils Head Resort. */
 		if (outputResult[arrayRankMatch(analyses,"FiberThAnn")]) setResult("FiberThAnn" +unitLabel, i, W1); /* Adds new Ribbon Thickness column to end of results table */
-		W2 = Areas[1]/((0.5*Ps[i])-(2*(Areas[i]/Ps[i]))); /* Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
+		W2 = Areas[i]/((0.5*Ps[i])-(2*(Areas[i]/Ps[i]))); /* Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
 		if (outputResult[arrayRankMatch(analyses,"FiberThRuss1")]) setResult("FiberThRuss1" +unitLabel, i, W2); /* Adds new fiber width column to end of results table. */
 		W3 = Areas[i]/(0.3181*Ps[i]+sqrt(0.033102*Ps[i]*Ps[i]-0.41483*Areas[i])); /* Fiber width from Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
 		if (outputResult[arrayRankMatch(analyses,"FiberThRuss2")]) setResult("FiberThRuss2" +unitLabel, i, W3); /* Adds new fiber width column to end of results table. */
