@@ -5,7 +5,7 @@ Simple macro to add historically common descriptions such as area equivalent dia
 &nbsp;&nbsp;&nbsp;Perimeter equivalent diameter: The &quot;diameter&quot; calculated from the perimeter  assuming a circular geometry.<br />
 &nbsp;&nbsp;&nbsp;Round end ribbon thickness from repeating half-annulus (Lee &amp; Jablonski LTSW'94).<br />  &nbsp;&nbsp;&nbsp;Two calculated fiber widths obtained from the fiber length from <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy, page 189.</a><br />
 &nbsp;&nbsp;&nbsp;Fiber length from fiber width (Lee and Jablonski LTSW'94; modified from the formula in  <a href="https://www.crcpress.com/The-Image-Processing-Handbook-Seventh-Edition/Russ-Neal/p/book/9781498740265">John C. Russ, Image Processing Handbook 7th Ed.</a> Page 612).<br />
-&nbsp;&nbsp;&nbsp;Two estimates of fiber length obtained from the formulae in <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy page, 189.</a><br />
-&nbsp;&nbsp;&nbsp;Hexagonality geomtries<br />
+&nbsp;&nbsp;&nbsp;Two estimates of fiber length obtained from the formulas in <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy page, 189.</a><br />
+&nbsp;&nbsp;&nbsp;Hexagonal geometries<br />
 &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m<br />
 A preference file is saved and retrieved so that favorite geometries can be retained.</p>
