@@ -7,12 +7,13 @@
 	v180503 1st version using new Table functions introduced in ImageJ 1.52
 	v180503b Reverts to setResult for scaled data to give more flexibility on column labels
 	v180809 All measurements selectable. Adds C_Tilt. Restored missing Feret AR column.
-	v180815 Fixed typo.
+	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
+	v190325 Saves and retrieves a preferences file.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
-
-	requires("1.52a"); /*Uses the new Table Macro Functions released in 1.52a */
+	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	if (nResults==0) exit("No Results Table to work with");
+	userPath = getInfo("user.dir");
 	selectWindow("Results");
 	setBatchMode(true); /* batch mode on*/
 	getPixelSize(unit, pixelWidth, pixelHeight);
@@ -41,34 +42,74 @@ macro "Add Additional Geometrical Analyses to Results" {
 	Angles = Table.getColumn("Angle");
 	FeretAngles = Table.getColumn("FeretAngle");
 	
-	analyses1 = newArray("C_Tilt","AR_Box","AR_Feret","Round_Feret","Compact_Feret");
+	analyses1 = newArray("C_Tilt","AR_Box","AR_Feret","Round_Feret","Compact_Feret", "Feret_Coords");
 	analyses2 = newArray("X\(px\)","Y\(px\)","YM\(px\)","YM\(px\)","BX\(px\)","BY\(px\)","BoxW\(px\)","BoxH\(px\)");
 	analyses3 = newArray("Object#","Angle_0-90","FeretAngle_0-90","Convexity","Da_equiv","Dp_equiv","Dsph_equiv","FiberThAnn","FiberThRuss1","FiberThRuss2","FiberLAnn","FiberLRuss1","FiberLRuss2","CurlF1","IntD","AR_Fiber","AR_FiberRuss1","AR_FiberRuss2","T_Ratio","Extent","HexSide","HexPerim","Hexagonality","VolPr","VolOb");
-	if (lcf!=1) analyses = Array.concat(analyses1,analyses2,analyses3);
-	else analyses = Array.concat(analyses1,analyses3);
-	outputResult = newArray(analyses.length);
-	for (i=0; i<analyses.length; i++)
-		outputResult[i]=true;
-	/* Uncheck analyses that should not be default */ 
-	outputResult[arrayRankMatch(analyses,"FiberThRuss1")] = false;
-	outputResult[arrayRankMatch(analyses,"FiberLRuss1")] = false;
-	outputResult[arrayRankMatch(analyses,"AR_FiberRuss1")] = false;
-	
-	checkboxGroupColumns = 3;
+	if (lcf!=1) {
+		analyses = Array.concat(analyses1,analyses2,analyses3);
+		prefsPath = userPath + "\\macros\\ExtGeoPrefs_LCF.txt";
+		outputResult = newArray(analyses.length);
+		outputResult = import1ColPrefsToArray(prefsPath,outputResult);
+	}
+	else {
+		analyses = Array.concat(analyses1,analyses3);
+		prefsPath = userPath + "\\macros\\ExtGeoPrefs.txt";
+		outputResult = newArray(analyses.length);
+		outputResult = import1ColPrefsToArray(prefsPath,outputResult);
+	}		
+	if (File.exists(prefsPath)==0) {	
+		outputResult = newArray(analyses.length);
+		for (i=0; i<analyses.length; i++)
+			outputResult[i]=true;
+		/* Example of how to uncheck analyses that you do not think should be default inclusions. */ 
+		outputResult[arrayRankMatch(analyses,"FiberThRuss1")] = false;
+		outputResult[arrayRankMatch(analyses,"FiberLRuss1")] = false;
+		outputResult[arrayRankMatch(analyses,"AR_FiberRuss1")] = false;
+		outputResult[arrayRankMatch(analyses,"VolPr")] = false;
+		outputResult[arrayRankMatch(analyses,"VolOb")] = false;
+	}
+	if (analyses.length!=outputResult.length) exit("analyses.length = " + analyses.length + " but outputResult.length = " + outputResult.length);
+	checkboxGroupColumns = 5;
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns);
 	Dialog.create("Select Extended Geometrical Analyses");
+	if (File.exists(prefsPath)) Dialog.addMessage("Previous selections were loaded from:\n" + prefsPath);
+	if (roiManager("count")!=nResults) {
+		outputResult[arrayRankMatch(analyses,"Feret_Coords")] = false;
+		Dialog.addMessage("Extended Feret Coords requires ROIs");
+	}
 	Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,outputResult);
+	Dialog.addMessage("Preferences will be saved at:\n" + prefsPath);
 	Dialog.show();
-		for (i=0; i<analyses.length; i++)
-			outputResult[i] = Dialog.getCheckbox();
-
-			/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
+	for (i=0; i<analyses.length; i++) outputResult[i] = Dialog.getCheckbox();
+	Array.show(outputResult);
+	if (lcf!=1) {
+		saveAs("Results", userPath + "\\macros\\ExtGeoPrefs_LCF.txt");
+		close("ExtGeoPrefs_LCF.txt");
+	}
+	else {
+		saveAs("Results", userPath + "\\macros\\ExtGeoPrefs.txt");
+		close("ExtGeoPrefs.txt");		
+	}
+	/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
 	if (outputResult[arrayRankMatch(analyses,"C_Tilt")]) {Table.applyMacro("C_Tilt=(180/PI) * acos(1/AR)");} /* The angle a circle (cylinder in 3D) would be tilted to appear as an ellipse with this AR */
 	if (outputResult[arrayRankMatch(analyses,"AR_Box")]) {Table.applyMacro("AR_Box=maxOf(Height/Width, Width/Height)");} /* Bounding rectangle aspect ratio */
 	if (outputResult[arrayRankMatch(analyses,"AR_Feret")]) {Table.applyMacro("AR_Feret=Feret/MinFeret");} /* adds fitted ellipse aspect ratio. */
 	if (outputResult[arrayRankMatch(analyses,"Round_Feret")]) {Table.applyMacro("Round_Feret=4*Area/(PI * Feret * Feret)");} /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
 	if (outputResult[arrayRankMatch(analyses,"Compact_Feret")]) {Table.applyMacro("Compact_Feret=(sqrt(Area*4/PI))/Feret");} /* Adds Compactness, using Feret as maximum diameter */
 	for (i=0; i<nResults; i++) {
+		if(!requires152m() && (roiManager("count")==nResults) && outputResult[arrayRankMatch(analyses,"Feret_Coords")]) {
+			roiManager("select", i);
+			Roi.getFeretPoints(x,y);
+			setResult("FeretX", i, x[0]);
+			setResult("FeretY", i, y[0]);
+			setResult("FeretX2", i, x[1]);
+			setResult("FeretY2", i, y[1]);
+			setResult("FeretMinX", i, x[2]);
+			setResult("FeretMinY", i, y[2]);
+			setResult("FeretMinX2", i, d2s(round(x[3]),0));
+			setResult("FeretMinY2", i, d2s(round(y[3]),0));
+		}
+		roiManager("deselect");
 		if (lcf!=1) {
 			if (outputResult[arrayRankMatch(analyses,"X\(px\)")]) setResult("X\(px\)", i, Xs[i]/lcf);
 			if (outputResult[arrayRankMatch(analyses,"Y\(px\)")]) setResult("Y\(px\)", i, Ys[i]/lcf);
@@ -139,3 +180,15 @@ function arrayRankMatch(array,string) {
 	if (rank == NaN) exit("Error in analysis title match");
 	return rank;
 }
+function import1ColPrefsToArray(savePath,prefsList) {
+	/* 1st version 3/19/2019 11:16 AM PJL */
+	if (File.exists(savePath)) {
+		prefsString=File.openAsString(savePath); 
+		prefsList=split(prefsString, "\n");
+		if (prefsList[0]=="Value") prefsList = Array.slice(prefsList,1,prefsList.length);
+		outputResult = prefsList;
+	}
+	else print("Could not find " + savePath);
+	return prefsList;
+}
+function requires152m() {requires("1.52m"); return 0; }
