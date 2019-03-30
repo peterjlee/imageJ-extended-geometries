@@ -8,5 +8,4 @@ Simple macro to add historically common descriptions such as area equivalent dia
 &nbsp;&nbsp;&nbsp;Two estimates of fiber length obtained from the formulae in <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy page, 189.</a><br />
 &nbsp;&nbsp;&nbsp;Hexagonality geomtries<br />
 &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m<br />
-A preference file is saved so the favorite selections can be retained.</p>
-
+A preference file is saved and retrieved so that favorite geometries can be retained.</p>
