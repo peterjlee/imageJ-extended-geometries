@@ -172,6 +172,10 @@ macro "Add Additional Geometrical Analyses to Results" {
 	run("Collect Garbage");
 }
 
+	/*
+	( 8(|)  ( 8(|)  All ASC Functions    @@@@@:-)  @@@@@:-)
+	*/
+
 function arrayRankMatch(array,string) {
 	/* 1st version 8/9/2018 3:07 PM PJL */
 	rank = NaN;
@@ -191,4 +195,7 @@ function import1ColPrefsToArray(savePath,prefsList) {
 	else print("Could not find " + savePath);
 	return prefsList;
 }
+	/*
+				Required ImageJ Functions
+	*/
 function requires152m() {requires("1.52m"); return 0; }
