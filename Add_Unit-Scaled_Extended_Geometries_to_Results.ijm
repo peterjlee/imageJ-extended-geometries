@@ -9,6 +9,7 @@
 	v180809 All measurements selectable. Adds C_Tilt. Restored missing Feret AR column.
 	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
 	v190325 Saves and retrieves a preferences file.
+	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
@@ -47,15 +48,15 @@ macro "Add Additional Geometrical Analyses to Results" {
 	analyses3 = newArray("Object#","Angle_0-90","FeretAngle_0-90","Convexity","Da_equiv","Dp_equiv","Dsph_equiv","FiberThAnn","FiberThRuss1","FiberThRuss2","FiberLAnn","FiberLRuss1","FiberLRuss2","CurlF1","IntD","AR_Fiber","AR_FiberRuss1","AR_FiberRuss2","T_Ratio","Extent","HexSide","HexPerim","Hexagonality","VolPr","VolOb");
 	if (lcf!=1) {
 		analyses = Array.concat(analyses1,analyses2,analyses3);
-		prefsPath = userPath + "\\macros\\ExtGeoPrefs_LCF.txt";
+		prefsPath = userPath + "\\macros\\info\\ExtGeoPrefs_LCF.txt";
 		outputResult = newArray(analyses.length);
-		outputResult = import1ColPrefsToArray(prefsPath,outputResult);
+		outputResult = import1ColPrefsToArray(prefsPath);
 	}
 	else {
 		analyses = Array.concat(analyses1,analyses3);
-		prefsPath = userPath + "\\macros\\ExtGeoPrefs.txt";
+		prefsPath = userPath + "\\macros\\info\\ExtGeoPrefs.txt";
 		outputResult = newArray(analyses.length);
-		outputResult = import1ColPrefsToArray(prefsPath,outputResult);
+		outputResult = import1ColPrefsToArray(prefsPath);
 	}		
 	if (File.exists(prefsPath)==0) {	
 		outputResult = newArray(analyses.length);
@@ -176,26 +177,27 @@ macro "Add Additional Geometrical Analyses to Results" {
 	( 8(|)  ( 8(|)  All ASC Functions    @@@@@:-)  @@@@@:-)
 	*/
 
-function arrayRankMatch(array,string) {
-	/* 1st version 8/9/2018 3:07 PM PJL */
-	rank = NaN;
-	for (i=0; i<array.length; i++)
-		if (array[i] == string) rank = i;
-	if (rank == NaN) exit("Error in analysis title match");
-	return rank;
-}
-function import1ColPrefsToArray(savePath,prefsList) {
-	/* 1st version 3/19/2019 11:16 AM PJL */
-	if (File.exists(savePath)) {
-		prefsString=File.openAsString(savePath); 
-		prefsList=split(prefsString, "\n");
-		if (prefsList[0]=="Value") prefsList = Array.slice(prefsList,1,prefsList.length);
-		outputResult = prefsList;
+	function arrayRankMatch(array,string) {
+		/* 1st version 8/9/2018 3:07 PM PJL */
+		rank = NaN;
+		for (i=0; i<array.length; i++)
+			if (array[i] == string) rank = i;
+		if (rank == NaN) exit("Error in analysis title match");
+		return rank;
 	}
-	else print("Could not find " + savePath);
-	return prefsList;
-}
+	function import1ColPrefsToArray(savePath) {
+		/* 1st version 3/19/2019 11:16 AM PJL
+			v190403
+		*/
+		if (File.exists(savePath)) {
+			prefsString=File.openAsString(savePath); 
+			prefsList=split(prefsString, "\n");
+			if (prefsList[0]=="Value") prefsList = Array.slice(prefsList,1,prefsList.length);
+		}
+		else print("Could not find " + savePath);
+		return prefsList;
+	}
 	/*
 				Required ImageJ Functions
 	*/
-function requires152m() {requires("1.52m"); return 0; }
+	function requires152m() {requires("1.52m"); return 0; }
