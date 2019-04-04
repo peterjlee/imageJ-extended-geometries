@@ -9,8 +9,8 @@ Simple macro to add historically common descriptions such as area equivalent dia
 &nbsp;&nbsp;&nbsp;Hexagonal geometries more appropriate to close-packed structures than ellipses.<br />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HexSide = sqrt((2*Areas)/(3*sqrt(3))) <br />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HexPerimeter = 6 * HexSide <br />
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonal Shape Factor "HSF", i, abs(((Ps[1] * Ps[1])/A[i])-13.856): Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 and Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x <br />
-   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonal Shape Factor Ratio "HSFR", i, abs(13.856/((Ps[1] * Ps[1])/A[i])): as above but expressed as a ratio like circularity, with 1 being an ideal hexagon. <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonal Shape Factor "HSF", i, abs(((P&sup2;)/Area)-13.856): Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 and Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x <br />
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonal Shape Factor Ratio "HSFR", i, abs(13.856/((P&sup2;)/Area): as above but expressed as a ratio like circularity, with 1 being an ideal hexagon. <br />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HexPerimeter = 6 * HexSide <br />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonality = 6 * HexSide/Perimeter br />
 &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m <br />
