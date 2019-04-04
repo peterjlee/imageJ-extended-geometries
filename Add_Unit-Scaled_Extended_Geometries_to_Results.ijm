@@ -9,7 +9,7 @@
 	v180809 All measurements selectable. Adds C_Tilt. Restored missing Feret AR column.
 	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
 	v190325 Saves and retrieves a preferences file.
-	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory.
+	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory. Added HSF and HSFR.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
@@ -45,23 +45,20 @@ macro "Add Additional Geometrical Analyses to Results" {
 	
 	analyses1 = newArray("C_Tilt","AR_Box","AR_Feret","Round_Feret","Compact_Feret", "Feret_Coords");
 	analyses2 = newArray("X\(px\)","Y\(px\)","YM\(px\)","YM\(px\)","BX\(px\)","BY\(px\)","BoxW\(px\)","BoxH\(px\)");
-	analyses3 = newArray("Object#","Angle_0-90","FeretAngle_0-90","Convexity","Da_equiv","Dp_equiv","Dsph_equiv","FiberThAnn","FiberThRuss1","FiberThRuss2","FiberLAnn","FiberLRuss1","FiberLRuss2","CurlF1","IntD","AR_Fiber","AR_FiberRuss1","AR_FiberRuss2","T_Ratio","Extent","HexSide","HexPerim","Hexagonality","VolPr","VolOb");
+	analyses3 = newArray("Object#","Angle_0-90","FeretAngle_0-90","Convexity","Da_equiv","Dp_equiv","Dsph_equiv","FiberThAnn","FiberThRuss1","FiberThRuss2","FiberLAnn","FiberLRuss1","FiberLRuss2","CurlF1","IntD","AR_Fiber","AR_FiberRuss1","AR_FiberRuss2","T_Ratio","Extent","HexSide","HexPerim","HSF", "HSFR", "Hexagonality","VolPr","VolOb");
 	if (lcf!=1) {
 		analyses = Array.concat(analyses1,analyses2,analyses3);
 		prefsPath = userPath + "\\macros\\info\\ExtGeoPrefs_LCF.txt";
-		outputResult = newArray(analyses.length);
-		outputResult = import1ColPrefsToArray(prefsPath);
 	}
 	else {
 		analyses = Array.concat(analyses1,analyses3);
 		prefsPath = userPath + "\\macros\\info\\ExtGeoPrefs.txt";
+	}
+	if (File.exists(prefsPath)) lastUsedPrefs = import1ColPrefsToArray(prefsPath);
+	if (analyses.length==lastUsedPrefs.length) outputResult = lastUsedPrefs; /* if new measurements are added the prefs are reset */
+	else {
 		outputResult = newArray(analyses.length);
-		outputResult = import1ColPrefsToArray(prefsPath);
-	}		
-	if (File.exists(prefsPath)==0) {	
-		outputResult = newArray(analyses.length);
-		for (i=0; i<analyses.length; i++)
-			outputResult[i]=true;
+		for (i=0; i<analyses.length; i++) outputResult[i]=true;
 		/* Example of how to uncheck analyses that you do not think should be default inclusions. */ 
 		outputResult[arrayRankMatch(analyses,"FiberThRuss1")] = false;
 		outputResult[arrayRankMatch(analyses,"FiberLRuss1")] = false;
@@ -71,7 +68,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 	}
 	if (analyses.length!=outputResult.length) exit("analyses.length = " + analyses.length + " but outputResult.length = " + outputResult.length);
 	checkboxGroupColumns = 5;
-	checkboxGroupRows = round(analyses.length/checkboxGroupColumns);
+	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
 	Dialog.create("Select Extended Geometrical Analyses");
 	if (File.exists(prefsPath)) Dialog.addMessage("Previous selections were loaded from:\n" + prefsPath);
 	if (roiManager("count")!=nResults) {
@@ -81,7 +78,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 	Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,outputResult);
 	Dialog.addMessage("Preferences will be saved at:\n" + prefsPath);
 	Dialog.show();
-	for (i=0; i<analyses.length; i++) outputResult[i] = Dialog.getCheckbox();
+	for (i=0; i<outputResult.length; i++) outputResult[i] = Dialog.getCheckbox();
 	Array.show(outputResult);
 	if (lcf!=1) {
 		saveAs("Results", userPath + "\\macros\\ExtGeoPrefs_LCF.txt");
@@ -160,6 +157,9 @@ macro "Add Additional Geometrical Analyses to Results" {
 		HexSide = sqrt((2*Areas[i])/(3*sqrt(3))); /* Some descriptions for 2D hexagonal close-packed structures */
 		if (outputResult[arrayRankMatch(analyses,"HexSide")]) setResult("HexSide" +unitLabel, i, HexSide); /* adds the length of each hexagonal side */
 		if (outputResult[arrayRankMatch(analyses,"HexPerim")]) setResult("HexPerim" +unitLabel, i, 6 * HexSide); /* adds total perimeter of hexagon */
+		HSFideal = 8 * sqrt(3); /* Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x */
+		if (outputResult[arrayRankMatch(analyses,"HSF")]) setResult("HSF", i, abs(((Ps[i] * Ps[i])/Areas[i])-HSFideal)); /* Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 */
+		if (outputResult[arrayRankMatch(analyses,"HSFR")]) setResult("HSFR", i, abs(HSFideal/((Ps[i] * Ps[i])/Areas[i]))); /* Hexagonal Shape Factor as ratio to the ideal HSF, the value for a perfect hexagon is 1 */
 		if (outputResult[arrayRankMatch(analyses,"Hexagonality")]) setResult("Hexagonality", i, 6*HexSide/Ps[i]); /* adds a term to indicate accuracy of hexagon approximation */
 		VolPr = (PI/6) * Ferets[i] * MinFerets[i] * MinFerets[i];
 		if (outputResult[arrayRankMatch(analyses,"VolPr")]) setResult("VolPr" + "\(" + unit + supthree + "\)", i, VolPr); /* adds prolate ellipsoid (an American football) volume: Hilliard 1968, Russ p. 189 */
