@@ -10,8 +10,8 @@
 	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
 	v190325 Saves and retrieves a preferences file.
 	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory. Added HexShapeFactor and HexShapeFactorR.
-	v190430 prefs moved to imageJ prefs. Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
-		Changed measurement naming philosophy (column titles stay abbreviated to keep column widths narrow but in the dialog selection box the geometry names expanded so that they are a little bit more descriptive.
+	v190430-v190501 prefs moved to imageJ prefs. Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
+		Changed measurement naming philosophy (column titles stay abbreviated to keep column widths narrow but in the dialog selection box the geometry names expanded so that they are a little bit more descriptive. Some of the output names were changed too.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
@@ -47,7 +47,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 	FeretAngles = Table.getColumn("FeretAngle");
 	/* The measurements are split into groups for organization purposes and then recombined for simplicity of use with Dialog.addCheckboxGroup */
 	analysesF = newArray("AR_Bounding_Rect","AR_Feret","Roundness_Feret","Compactness_Feret", "Feret_Coords");
-	analysesA = newArray("Angle_0-90", "FeretAngle_0-90","CircToEllpsTilt");
+	analysesA = newArray("Angle_0-90", "FeretAngle_0-90","CircToEllipse_Tilt");
 	analysesPx = newArray("X\(px\)","Y\(px\)","YM\(px\)","YM\(px\)","BX\(px\)","BY\(px\)","Bounding_Rect_W\(px\)","Bounding_Rect_H\(px\)");
 	analysesD = newArray("D_Area_CircEquiv","D_Perim_CircEquiv","Dsph_equiv");
 	analysesB = newArray("FiberThk_Snake","Fiber_Thk_Russ1","Fiber_Thk_Russ2","Fiber_Lngth_Snake","Fiber_Lngth_Russ1","Fiber_Lngth_Russ2","Fiber_Snake_Curl","AR_Fiber_Snake","AR_Fiber_Russ1","AR_Fiber_Russ2");
@@ -78,7 +78,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 		outputResult[arrayRankMatch(analyses,"Fiber_Thk_Russ1")] = false;
 		outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Russ1")] = false;
 		outputResult[arrayRankMatch(analyses,"AR_Fiber_Russ1")] = false;
-		outputResult[arrayRankMatch(analyses,"Vol_Pointy_Spheroid")] = false;
+		outputResult[arrayRankMatch(analyses,"Vol_Pointed_Spheroid")] = false;
 		outputResult[arrayRankMatch(analyses,"Vol_Discus_Spheroid")] = false;
 	}
 	if (analyses.length!=outputResult.length) exit("analyses.length = " + analyses.length + " but outputResult.length = " + outputResult.length);
@@ -106,7 +106,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 		call("ij.Prefs.set", analysesOnPrefsKey, analysesOnString);
 	}
 	/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
-	if (outputResult[arrayRankMatch(analyses,"CircToEllpsTilt")]) {Table.applyMacro("C_Tilt=(180/PI) * acos(1/AR)");} /* The angle a circle (cylinder in 3D) would be tilted to appear as an ellipse with this AR */
+	if (outputResult[arrayRankMatch(analyses,"CircToEllipse_Tilt")]) {Table.applyMacro("Cir_to_El_Tilt=(180/PI) * acos(1/AR)");} /* The angle a circle (cylinder in 3D) would be tilted to appear as an ellipse with this AR */
 	if (outputResult[arrayRankMatch(analyses,"AR_Bounding_Rect")]) {Table.applyMacro("AR_Box=maxOf(Height/Width, Width/Height)");} /* Bounding rectangle aspect ratio */
 	if (outputResult[arrayRankMatch(analyses,"AR_Feret")]) {Table.applyMacro("AR_Feret=Feret/MinFeret");} /* adds fitted ellipse aspect ratio. */
 	if (outputResult[arrayRankMatch(analyses,"Roundness_Feret")]) {Table.applyMacro("Round_Feret=4*Area/(PI * Feret * Feret)");} /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
@@ -189,7 +189,6 @@ macro "Add Additional Geometrical Analyses to Results" {
 	beep(); wait(300); beep(); wait(100); beep();
 	run("Collect Garbage");
 }
-
 	/*
 	( 8(|)  ( 8(|)  All ASC Functions    @@@@@:-)  @@@@@:-)
 	*/
