@@ -14,5 +14,5 @@ Simple macro to add historically common descriptions such as area equivalent dia
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HexPerimeter = 6 * HexSide <br />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonality = 6 * HexSide/Perimeter <br />
 &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m <br />
-A preference file is saved and retrieved so that favorite geometries can be retained.</p>
-<p><img src="https://fs.magnet.fsu.edu/~lee/asc/ImageJUtilities/IA_Images/ASC_Extended_Geometries_Menu_574x413.png" alt="ASC_Extended Geometries Menu" height="350" /> </p>
+Preferences are saved in the user IJ_prefs file.</p>
+<p><img src="https://fs.magnet.fsu.edu/~lee/asc/ImageJUtilities/IA_Images/ASC_Extended_Geometries_Menu_v190501.png" alt="ASC_Extended Geometries Menu" height="328" /> </p>
