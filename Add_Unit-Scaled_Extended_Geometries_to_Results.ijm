@@ -10,9 +10,9 @@
 	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
 	v190325 Saves and retrieves a preferences file.
 	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory. Added HexShapeFactor and HexShapeFactorR.
-	v190430-v190501 prefs moved to imageJ prefs (..\Users\username\.imagej\IJ_Prefs.txt) . Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
-	v190815 Help button provides more information on each measurement.
+	v190430-v190501 prefs moved to imageJ prefs. Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
 		Changed measurement naming philosophy (column titles stay abbreviated to keep column widths narrow but in the dialog selection box the geometry names expanded so that they are a little bit more descriptive. Some of the output names were changed too.
+	v190815 Help button provides more information on each measurement.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
