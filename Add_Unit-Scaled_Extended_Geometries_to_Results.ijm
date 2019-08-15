@@ -10,7 +10,8 @@
 	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
 	v190325 Saves and retrieves a preferences file.
 	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory. Added HexShapeFactor and HexShapeFactorR.
-	v190430-v190501 prefs moved to imageJ prefs. Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
+	v190430-v190501 prefs moved to imageJ prefs (..\Users\username\.imagej\IJ_Prefs.txt) . Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
+	v190815 Help button provides more information on each measurement.
 		Changed measurement naming philosophy (column titles stay abbreviated to keep column widths narrow but in the dialog selection box the geometry names expanded so that they are a little bit more descriptive. Some of the output names were changed too.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
@@ -24,10 +25,49 @@ macro "Add Additional Geometrical Analyses to Results" {
 	unitLabel = "\(" + unit + "\)";
 	delimiter = "|";
 	
-	supminus = fromCharCode(0x207B);
+	supminus = fromCharCode(0xFE63); /* Small hyphen substituted for superscript minus as 0x207B does not display in table */
 	supone = fromCharCode(0x00B9); /* UTF-16 (hex) C/C++/Java source code 	"\u00B9" */
 	suptwo = fromCharCode(0x00B2); /* UTF-16 (hex) C/C++/Java source code 	"\u00B2" */
 	supthree = fromCharCode(0x00B2); /* UTF-16 (hex) C/C++/Java source code 	"\u00B3" */
+	sqroot = fromCharCode(0x221A); /* UTF-16 (hex) */
+	
+	 html = "<html>"
+	 +"<font color=blue size=+1>Additional Aspect Ratios:</font><br />"
+	 +"<font color=green> \"AR Bounding Rect\"</font>: Aspect ratio from bounding rectangle.<br />"
+	 +"<font color=green> \"AR Feret\"</font>: Aspect ratio Feret diameters\( max\/min\).<br />"
+	 +"<font color=blue size=+1>Additional Feret Diameter derived geometries:</font><br />"
+	 +"<font color=green> \"Roundness\", \"Compactness\"</font><br />"
+	 +"<font color=green> \"Feret Coordinates\"</font>: Coordinates for both min and max Feret diameters.<br />"
+	 +"<font color=blue size=+1>0-90 degree resolved angles:</font> for \"Angle\" and \"Feret Angle\"<br />"
+     +"<font color=blue size=+1>Interfacial density</font> (assuming each interface is shared by two objects - e.g. grain boundary density).<br />"
+	 +"<font color=blue size=+1>CircToEllipse Tilt:</font> Angle that a circle would have to be tilted to match measured ellipse.<br />"
+	 +"<font color=blue size=+1>Pixel coordinates:</font> Coordinates and bounding box values converted to pixels.<br />"
+     +"<font color=blue size=+1>Area equivalent diameter</font>\(AKA Heywood diameter\): The \"diameter\" of an object obtained from the area assuming a circular geometry.<br />"
+	 +"<font color=blue size=+1>Perimeter equivalent diameter</font> : The \"diameter\" calculated from the perimeter  assuming a circular geometry.<br />"
+	 +"<font color=blue size=+1>Spherical equivalent diameter</font> : The \"diameter\" calculated from the volume of a sphere (Russ page 182) but using the mean projected Feret diameters to calculate the volume.<br />"
+	 +"<font color=blue size=+1>Snake ribbon thickness estimates</font> from repeating half-annulus (Lee & Jablonski LTSW'94).<br />"
+	 +"<font color=blue size=+1>Fiber widths</font> estimated obtained from the fiber length from [1] page 189.<br />"
+	 +"<font color=blue size=+1>Fiber length</font> from fiber width (Lee and Jablonski LTSW'94; modified from the formula in [2] Page 612.<br />"
+	 +"<font color=blue size=+1>Fiber lengths</font> from Russ formulae.<br />"
+	 +"<font color=blue size=+1>Volumetric estimates from projections</font> obtained from the formulae in [1] 189.<br />"
+	 +"<font color=blue size=+1>Additional shape factors</font>:<br />"
+	 +"<font color=green>\"Compactness\"</font> (using Feret diameter as maximum diameter),<br />"
+	 +"<font color=green>\"Convexity\" (using the calculated elliptical fit to obtain a convex perimeter), http://imagej.net/Shape_Filter,<br />"
+	 +"<font color=green> \"Thinnes ratio\"</font> ,<br />"
+	 +"<font color=green> \"Extent ratio\"</font> ,<br />"
+	 +"<font color=green> \"Curl\"</font>  etc.<br />"
+	 +"<font color=blue size=+1>Hexagonal geometries</font> more appropriate to close-packed structures than ellipses:<br />"
+	 +"<font color=green>HexSide</font> ="+sqroot+"\(\(2*Area\)/\(3*"+sqroot+"3\)\)<br />"
+	 +"<font color=green>HexPerimeter</font> = 6 * HexSide<br />"
+	 +"<font color=green>Hexagonal Shape Factor</font> \"HSF\" = |\(P"+suptwo+"\/Area-13.856\)| <br />"
+	 +"Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 and Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x"
+	 +"<font color=green>Hexagonal Shape Factor Ratio</font> \"HSFR\" = |\(13.856/\(P"+suptwo+"\/Area\)\)|    <br /> as above but expressed as a ratio like circularity, with 1 being an ideal hexagon.<br />"
+	 +"<font color=green>HexPerimeter</font> = 6 * HexSide</font><br />"
+	 +"<font color=green>Hexagonality</font> = 6 * HexSide/Perimeter</font><br />"
+	 +"<font color=blue>Full Feret coordinate listing</font> using new Roi.getFeretPoints macro function added in ImageJ 1.52m.<br />"
+	 +"Preferences are automatically saved and retrieved from the IJ_prefs file so that favorite geometries can be retained.<br />"
+	 +"[1] John C. Russ, Computer Assisted Microscopy.<br />"
+	 +"[2] John C. Russ, Image Processing Handbook 7th Ed.<br />";
 
 	Xs = Table.getColumn("X");
 	Ys = Table.getColumn("Y");
@@ -91,6 +131,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 	}
 	Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,outputResult);
 	Dialog.addCheckbox("Reset preferences for next run?", false);
+	Dialog.addHelp(html);
 	Dialog.show();
 	for (i=0; i<outputResult.length; i++) outputResult[i] = Dialog.getCheckbox();
 	analysesPrefsKey = prefsNameKey+"Analyses";
