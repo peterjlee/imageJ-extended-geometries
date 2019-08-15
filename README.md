@@ -1,6 +1,6 @@
 # imageJ-extended-geometries
 Simple macro to add historically common descriptions such as area equivalent diameter and fiber thickness to the ImageJ Results table using the macro in this: <a href="https://github.com/peterjlee/imageJ-extended-geometries"  Title = "Applied Superconductivity Center Extended Geometrical Analyses Macro Directory" >directory</a>.</p><p>The additional measurements in this version are:</p>
-<p>&nbsp;&nbsp;&nbsp;Local grain boundary density (assuming each grain boundary is shared by two grains).<br />
+<p>&nbsp;&nbsp;&nbsp;Interfacial density (assuming each interface is shared by two objects - e.g. grain boundary density).<br />
 &nbsp;&nbsp;&nbsp;Area equivalent diameter  (AKA Heywood diameter): The &quot;diameter&quot; of an object obtained from the area assuming a circular geometry.<br />
 &nbsp;&nbsp;&nbsp;Perimeter equivalent diameter: The &quot;diameter&quot; calculated from the perimeter  assuming a circular geometry.<br />
 &nbsp;&nbsp;&nbsp;Round end ribbon thickness from repeating half-annulus - like a snake or Loch Ness Monster perhaps (Lee &amp; Jablonski LTSW'94).<br />  &nbsp;&nbsp;&nbsp;Two calculated fiber widths obtained from the fiber length from <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy, page 189.</a><br />
