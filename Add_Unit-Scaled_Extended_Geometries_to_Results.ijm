@@ -9,17 +9,18 @@
 	v180809 All measurements selectable. Adds C_Tilt. Restored missing Feret AR column.
 	v190319 Adds full max and min coordinates using Roi.getFeretPoints macro function added in ImageJ 1.52m.
 	v190325 Saves and retrieves a preferences file.
-	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory. Added HexShapeFactor and HexShapeFactorR.
+	v190404 Removed redundant code. Prefs path moved from busy Macro directory to "info" sub-directory. Added HxgnShapeFactor and HxgnShapeFactorR.
 	v190430-v190501 prefs moved to imageJ prefs. Please delete old copies of ..\macros\info\ExtGeoPrefs_LCF.txt
 		Changed measurement naming philosophy (column titles stay abbreviated to keep column widths narrow but in the dialog selection box the geometry names expanded so that they are a little bit more descriptive. Some of the output names were changed too.
 	v190815 Help button provides more information on each measurement.
+	v190830 Corrected Thinnes ratio (which was inverted :-$ ). Redefined Elongation to 1 - (short box side/long box side). Added Circularity corrected by aspect ratio (Takashimizu and Iiyoshi). Abbreviated some names and made code more efficient.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	if (nResults==0) exit("No Results Table to work with");
 	userPath = getInfo("user.dir");
 	selectWindow("Results");
-	setBatchMode(true); /* batch mode on*/
+	// setBatchMode(true); /* batch mode on*/
 	getPixelSize(unit, pixelWidth, pixelHeight);
 	lcf = (pixelWidth + pixelHeight)/2;
 	unitLabel = "\(" + unit + "\)";
@@ -36,34 +37,41 @@ macro "Add Additional Geometrical Analyses to Results" {
 	 +"<font color=green> \"AR Bounding Rect\"</font>: Aspect ratio from bounding rectangle.<br />"
 	 +"<font color=green> \"AR Feret\"</font>: Aspect ratio Feret diameters\( max\/min\).<br />"
 	 +"<font color=blue size=+1>Additional Feret Diameter derived geometries:</font><br />"
-	 +"<font color=green> \"Roundness\", \"Compactness\"</font><br />"
-	 +"<font color=green> \"Feret Coordinates\"</font>: Coordinates for both min and max Feret diameters.<br />"
-	 +"<font color=blue size=+1>0-90 degree resolved angles:</font> for \"Angle\" and \"Feret Angle\"<br />"
+		+"<font color=green> \"Feret Coordinates\"</font>: Coordinates for both min and max Feret diameters.<br />"
+		+"<font color=green>\"Compactness_Feret\"</font> (using Feret diameter as maximum diameter),<br />"
+		+"<font color=green>0-90 degree resolved angles:</font> for \"Angle\" and \"Feret Angle\"<br />"
      +"<font color=blue size=+1>Interfacial density</font> (assuming each interface is shared by two objects - e.g. grain boundary density).<br />"
 	 +"<font color=blue size=+1>CircToEllipse Tilt:</font> Angle that a circle would have to be tilted to match measured ellipse.<br />"
 	 +"<font color=blue size=+1>Pixel coordinates:</font> Coordinates and bounding box values converted to pixels.<br />"
-     +"<font color=blue size=+1>Area equivalent diameter</font>\(AKA Heywood diameter\): The \"diameter\" of an object obtained from the area assuming a circular geometry.<br />"
-	 +"<font color=blue size=+1>Perimeter equivalent diameter</font> : The \"diameter\" calculated from the perimeter  assuming a circular geometry.<br />"
-	 +"<font color=blue size=+1>Spherical equivalent diameter</font> : The \"diameter\" calculated from the volume of a sphere (Russ page 182) but using the mean projected Feret diameters to calculate the volume.<br />"
-	 +"<font color=blue size=+1>Snake ribbon thickness estimates</font> from repeating half-annulus (Lee & Jablonski LTSW'94).<br />"
+     +"<font color=blue size=+1>Area equivalent diameter</font>\(AKA Heywood diameter\):<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The \"diameter\" of an object obtained from the area assuming a circular geometry.<br />"
+	 +"<font color=blue size=+1>Perimeter equivalent diameter</font>: Calculated from the perimeter  assuming a circular geometry.<br />"
+	 +"<font color=blue size=+1>Spherical equivalent diameter</font>: Calculated from the volume of a sphere (Russ page 182)<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; but using the mean projected Feret diameters to calculate the volume.<br />"
+	 +"<font color=blue size=+1>Fiber geometries</font>:<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=green>Snake ribbon thickness estimates</font> from repeating half-annulus (Lee & Jablonski LTSW'94).<br />"
 	 +"<font color=blue size=+1>Fiber widths</font> estimated obtained from the fiber length from [1] page 189.<br />"
 	 +"<font color=blue size=+1>Fiber length</font> from fiber width (Lee and Jablonski LTSW'94; modified from the formula in [2] Page 612.<br />"
 	 +"<font color=blue size=+1>Fiber lengths</font> from Russ formulae.<br />"
 	 +"<font color=blue size=+1>Volumetric estimates from projections</font> obtained from the formulae in [1] 189.<br />"
 	 +"<font color=blue size=+1>Additional shape factors</font>:<br />"
-	 +"<font color=green>\"Compactness\"</font> (using Feret diameter as maximum diameter),<br />"
-	 +"<font color=green>\"Convexity\" (using the calculated elliptical fit to obtain a convex perimeter), http://imagej.net/Shape_Filter,<br />"
-	 +"<font color=green> \"Thinnes ratio\"</font> ,<br />"
-	 +"<font color=green> \"Extent ratio\"</font> ,<br />"
-	 +"<font color=green> \"Curl\"</font>  etc.<br />"
+	 +"<font color=green>\"Convexity\"</font>: using the calculated elliptical fit to obtain a convex perimeter, https://imagej.net/Shape_Filter<br />"
+	 +"<font color=green>\"Elongation\"</font> = 1 - 1/Bounding Rectangle Aspect Ratio see https://imagej.net/Shape_Filter<br />"
+	 +"<font color=green>\"Roundnesss_cAR\"</font> Circularity corrected by aspect ratio,<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Takashimizu and Iiyoshi Progress in Earth and Planetary Science (2016) 3:2<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; https://doi.org/DOI 10.1186/s40645-015-0078-x<br />"
+	 +"<font color=green> \"Thinnes ratio\"</font> inverse of circularity see https://imagej.net/Shape_Filter<br />"
+	 +"<font color=green> \"Extent ratio\"</font> object area/bounding rectangle area */,<br />"
+	 +"<font color=green> \"Curl\"</font> Fiber length/length of bounding box<br />"
 	 +"<font color=blue size=+1>Hexagonal geometries</font> more appropriate to close-packed structures than ellipses:<br />"
-	 +"<font color=green>HexSide</font> ="+sqroot+"\(\(2*Area\)/\(3*"+sqroot+"3\)\)<br />"
-	 +"<font color=green>HexPerimeter</font> = 6 * HexSide<br />"
+	 +"<font color=green>HxgnSide</font> ="+sqroot+"\(\(2*Area\)/\(3*"+sqroot+"3\)\)<br />"
+	 +"<font color=green>HexPerimeter</font> = 6 * HxgnSide<br />"
 	 +"<font color=green>Hexagonal Shape Factor</font> \"HSF\" = |\(P"+suptwo+"\/Area-13.856\)| <br />"
-	 +"Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 and Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 <br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; and Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x <br />"
 	 +"<font color=green>Hexagonal Shape Factor Ratio</font> \"HSFR\" = |\(13.856/\(P"+suptwo+"\/Area\)\)|    <br /> as above but expressed as a ratio like circularity, with 1 being an ideal hexagon.<br />"
-	 +"<font color=green>HexPerimeter</font> = 6 * HexSide</font><br />"
-	 +"<font color=green>Hexagonality</font> = 6 * HexSide/Perimeter</font><br />"
+	 +"<font color=green>HexPerimeter</font> = 6 * HxgnSide</font><br />"
+	 +"<font color=green>Hexagonality</font> = 6 * HxgnSide/Perimeter</font><br />"
 	 +"<font color=blue>Full Feret coordinate listing</font> using new Roi.getFeretPoints macro function added in ImageJ 1.52m.<br />"
 	 +"Preferences are automatically saved and retrieved from the IJ_prefs file so that favorite geometries can be retained.<br />"
 	 +"[1] John C. Russ, Computer Assisted Microscopy.<br />"
@@ -83,16 +91,18 @@ macro "Add Additional Geometrical Analyses to Results" {
 	Minors = Table.getColumn("Minor");
 	Ferets = Table.getColumn("Feret");
 	MinFerets = Table.getColumn("MinFeret");
+	ARs = Table.getColumn("AR");
 	Angles = Table.getColumn("Angle");
+	Cs = Table.getColumn("Circ.");
 	FeretAngles = Table.getColumn("FeretAngle");
 	/* The measurements are split into groups for organization purposes and then recombined for simplicity of use with Dialog.addCheckboxGroup */
 	analysesF = newArray("AR_Bounding_Rect","AR_Feret","Roundness_Feret","Compactness_Feret", "Feret_Coords");
 	analysesA = newArray("Angle_0-90", "FeretAngle_0-90","CircToEllipse_Tilt");
 	analysesPx = newArray("X\(px\)","Y\(px\)","YM\(px\)","YM\(px\)","BX\(px\)","BY\(px\)","Bounding_Rect_W\(px\)","Bounding_Rect_H\(px\)");
 	analysesD = newArray("D_Area_CircEquiv","D_Perim_CircEquiv","Dsph_equiv");
-	analysesB = newArray("FiberThk_Snake","Fiber_Thk_Russ1","Fiber_Thk_Russ2","Fiber_Lngth_Snake","Fiber_Lngth_Russ1","Fiber_Lngth_Russ2","Fiber_Snake_Curl","AR_Fiber_Snake","AR_Fiber_Russ1","AR_Fiber_Russ2");
+	analysesB = newArray("FiberThk_Snake","Fiber_Thk_Russ1","Fiber_Thk_Russ2","Fiber_Lngth_Snake","Fiber_Lngth_Russ1","Fiber_Lngth_Russ2","Fiber_Snake_Curl","Fiber_Russ1_Curl","Fiber_Russ2_Curl","AR_Fiber_Snake","AR_Fiber_Russ1","AR_Fiber_Russ2");
 	analysesH = newArray("Hxgn_Side","Hxgn_Perim","Hxgn_Shape_Factor", "Hxgn_Shape_Factor_R", "Hexagonality");
-	analysesM = newArray("Object#","Convexity","Interfacial_Density","Thinnes_Ratio","Extent");
+	analysesM = newArray("Object#","Convexity","Elongation","Roundness_cAR","Interfacial_Density","Thinnes_Ratio","Extent");
 	analysesV = newArray("Vol_Pointed_Spheroid","Vol_Discus_Spheroid");
 	analyses1 = Array.concat(analysesF,analysesA);
 	analyses3 = Array.concat(analysesD,analysesB,analysesH,analysesM,analysesV);
@@ -110,6 +120,14 @@ macro "Add Additional Geometrical Analyses to Results" {
 		lastUsedAnalyses = split(prefsAnalyses,delimiter);
 		lastUsedAnalysesOn = split(prefsAnalysesOn,delimiter);
 		if (analyses.length==lastUsedAnalysesOn.length) outputResult = lastUsedAnalysesOn; /* if new measurements are added the prefs are reset */
+		else {
+			outputResult = newArray(analyses.length);
+			Dialog.create("Reset analysis selections");
+			Dialog.addRadioButtonGroup("Choose reset mode \(all analyses or none\):",newArray("all","none"),1,2,"all");
+			Dialog.show;
+			if (Dialog.getRadioButton=="none")	outputResult = Array.fill(outputResult, false);
+			else outputResult = Array.fill(outputResult, true);
+		}
 	}
 	else {
 		outputResult = newArray(analyses.length);
@@ -150,10 +168,20 @@ macro "Add Additional Geometrical Analyses to Results" {
 	if (outputResult[arrayRankMatch(analyses,"CircToEllipse_Tilt")]) {Table.applyMacro("Cir_to_El_Tilt=(180/PI) * acos(1/AR)");} /* The angle a circle (cylinder in 3D) would be tilted to appear as an ellipse with this AR */
 	if (outputResult[arrayRankMatch(analyses,"AR_Bounding_Rect")]) {Table.applyMacro("AR_Box=maxOf(Height/Width, Width/Height)");} /* Bounding rectangle aspect ratio */
 	if (outputResult[arrayRankMatch(analyses,"AR_Feret")]) {Table.applyMacro("AR_Feret=Feret/MinFeret");} /* adds fitted ellipse aspect ratio. */
-	if (outputResult[arrayRankMatch(analyses,"Roundness_Feret")]) {Table.applyMacro("Round_Feret=4*Area/(PI * Feret * Feret)");} /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
+	if (outputResult[arrayRankMatch(analyses,"Roundness_Feret")]) {Table.applyMacro("Rnd_Feret=4*Area/(PI * pow(Feret,2))");} /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
 	if (outputResult[arrayRankMatch(analyses,"Compactness_Feret")]) {Table.applyMacro("Compact_Feret=(sqrt(Area*4/PI))/Feret");} /* Adds Compactness, using Feret as maximum diameter */
+	if (outputResult[arrayRankMatch(analyses,"Elongation")]) {Table.applyMacro("Elong = 1-(minOf(Height/Width, Width/Height))");} /* Elongation see https://imagej.net/Shape_Filter */
+	if (outputResult[arrayRankMatch(analyses,"Thinnes_Ratio")]) {
+		Table.renameColumn("Circ.", "Circ"); /* New table functions do not accept periods in names */
+		Table.applyMacro("Thinnes_Ratio = 1/Circ"); /* adds Thinnes ratio. */ 
+		Table.renameColumn("Circ", "Circ.");
+	}
+	setBatchMode(true);
 	for (i=0; i<nResults; i++) {
-		if(!requires152m() && (roiManager("count")==nResults) && outputResult[arrayRankMatch(analyses,"Feret_Coords")]) {
+		BS = minOf(BWs[i],BHs[i]);
+		BL = maxOf(BWs[i],BHs[i]);
+		BAR = BL/BS;
+		if((roiManager("count")==nResults) && outputResult[arrayRankMatch(analyses,"Feret_Coords")]) {
 			roiManager("select", i);
 			Roi.getFeretPoints(x,y);
 			setResult("FeretX", i, x[0]);
@@ -177,52 +205,79 @@ macro "Add Additional Geometrical Analyses to Results" {
 			if (outputResult[arrayRankMatch(analyses,"Bounding_Rect_H\(px\)")]) setResult("BoxH\(px\)", i, round(BHs[i]/lcf));
 		}
 		if (outputResult[arrayRankMatch(analyses,"Object#")]) setResult("Object#", i, i+1); /* Add Object#+1 column for labels */
-		PE = PI * ((3*(Majors[i]/2 + Minors[i]/2)) - sqrt((3*Majors[i]/2 + Minors[i]/2)*(Majors[i]/2 + 3*Minors[i]/2))); /* Perimeter of fitted ellipse from Ramanujan's first approximation */;
 		if (outputResult[arrayRankMatch(analyses,"Angle_0-90")]) setResult("Angle_0-90", i, abs(Angles[i]-90));
-		if (outputResult[arrayRankMatch(analyses,"FeretAngle_0-90")]) setResult("FeretAngle_0-90", i, abs(FeretAngles[i]-90));
-		if (outputResult[arrayRankMatch(analyses,"Convexity")]) setResult("Convexity", i, PE/Ps[i]); /* Convexity using the calculated elliptical fit to obtain a convex perimeter */
-		DA = 2*(sqrt(Areas[i]/PI));  /* Adds Darea-equiv (AKA Heywood diameter) while we are at it. */
-		if (outputResult[arrayRankMatch(analyses,"D_Area_CircEquiv")]) setResult("Da_equiv" +unitLabel, i, DA); /* adds new Da* column to end of results table - remember no spaces allowed in label. */
-		DP = Ps[i]/PI;  /* Adds Dperimeter-equiv while we are at it. */
-		if (outputResult[arrayRankMatch(analyses,"D_Perim_CircEquiv")]) setResult("Dp_equiv" +unitLabel, i, DP); /* Adds new Dp* column to end of results table - remember no spaces allowed in label. */
-		if (outputResult[arrayRankMatch(analyses,"Dsph_equiv")]) setResult("Dsph_equiv" +unitLabel, i, exp((log(6*Areas[i]*(Ferets[i]+MinFerets[i])/(2*PI)))/3)); /* Adds diameter based on a sphere - Russ page 182 but using the mean Feret diameters to calculate the volume */
-		W1 = 1/PI*(Ps[i]-(sqrt(Ps[i]*Ps[i]-4*PI*Areas[i]))); /* Round end ribbon thickness from repeating up/down half-annulus - think snake or perhaps Loch Ness Monster Lee & Jablonski LTSW'94 Devils Head Resort. */
-		if (outputResult[arrayRankMatch(analyses,"FiberThk_Snake")]) setResult("FiberThSnk" +unitLabel, i, W1); /* Adds new Ribbon Thickness column to end of results table */
-		W2 = Areas[i]/((0.5*Ps[i])-(2*(Areas[i]/Ps[i]))); /* Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
-		if (outputResult[arrayRankMatch(analyses,"Fiber_Thk_Russ1")]) setResult("FiberThRuss1" +unitLabel, i, W2); /* Adds new fiber width column to end of results table. */
-		W3 = Areas[i]/(0.3181*Ps[i]+sqrt(0.033102*Ps[i]*Ps[i]-0.41483*Areas[i])); /* Fiber width from Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
-		if (outputResult[arrayRankMatch(analyses,"Fiber_Thk_Russ2")]) setResult("FiberThRuss2" +unitLabel, i, W3); /* Adds new fiber width column to end of results table. */
-		F1 = Areas[i]/W1; /* Fiber Length from fiber width Lee and Jablonski (John C. Russ  The Image Processing Handbook 7th Ed. Page 612 0.25*(sqrt(P+(P*P-(16*A)))) is incorrect).*/
-		if (outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Snake")]) setResult("FiberLSnk" +unitLabel, i, F1); /* Adds new fiber length column to end of results table. */
-		F2 = (0.5*Ps[i])-(2*(Areas[i]/Ps[i])); /* Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
-		if (outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Russ1")]) setResult("FiberLRuss1" +unitLabel, i, F2); /* Adds new fiber length column to end of results table. */
-		F3 = 0.3181*Ps[i]+sqrt(0.033102*Ps[i]*Ps[i]-0.41483*Areas[i]); /* Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
-		if (outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Russ2")]) setResult("FiberLRuss2" +unitLabel, i, F3); /* Adds new fiber length column to end of results table. */
-		if (outputResult[arrayRankMatch(analyses,"Fiber_Snake_Curl")]) setResult("FiberSnkCrl", i, BHs[i]/F1); /* Adds Curl for Fiber 1 calculated and bounding length */
+		if (outputResult[arrayRankMatch(analyses,"FeretAngle_0-90")]) setResult("Ft_Ang_0-90", i, abs(FeretAngles[i]-90));
+		if (outputResult[arrayRankMatch(analyses,"Convexity")]){
+			PE = PI * ((3*(Majors[i]/2 + Minors[i]/2)) - sqrt((3*Majors[i]/2 + Minors[i]/2)*(Majors[i]/2 + 3*Minors[i]/2))); /* Perimeter of fitted ellipse from Ramanujan's first approximation */;
+			setResult("Conv.", i, PE/Ps[i]); /* Convexity using the calculated elliptical fit to obtain a convex perimeter */			
+		}
+		if (outputResult[arrayRankMatch(analyses,"Roundness_cAR")]){
+			cAR = 0.826261 + 0.337479 * ARs[i]-0.335455 * pow(ARs[i],2) + 0.103642 * pow(ARs[i],3) - 0.0155562 * pow(ARs[i],4) + 0.00114582 * pow(ARs[i],5) - 0.0000330834 * pow(ARs[i],6);
+			setResult("Roundness_cAR", i, Cs[i] + 0.913 - cAR); /* Circularity corrected by aspect ratio roundness: https://doi.org/10.1186/s40645-015-0078-x */
+		}
+		if (outputResult[arrayRankMatch(analyses,"D_Area_CircEquiv")])
+			setResult("Da_equiv" +unitLabel, i, 2*(sqrt(Areas[i]/PI))); /* Darea-equiv (AKA Heywood diameter) - remember no spaces allowed in label. */
+		if (outputResult[arrayRankMatch(analyses,"D_Perim_CircEquiv")])
+			setResult("Dp_equiv" +unitLabel, i, Ps[i]/PI); /* Adds new perimeter-equivalent Diameter column to end of results table - remember no spaces allowed in label. */
+		if (outputResult[arrayRankMatch(analyses,"Dsph_equiv")])
+			setResult("Dsph_equiv" +unitLabel, i, exp((log(6*Areas[i]*(Ferets[i]+MinFerets[i])/(2*PI)))/3)); /* Adds diameter based on a sphere - Russ page 182 but using the mean Feret diameters to calculate the volume */
+		if (outputResult[arrayRankMatch(analyses,"Fiber")]) {
+			W1 = 1/PI*(Ps[i]-(sqrt(Ps[i]*Ps[i]-4*PI*Areas[i]))); /* Round end ribbon thickness from repeating up/down half-annulus - think snake or perhaps Loch Ness Monster Lee & Jablonski LTSW'94 Devils Head Resort. */
+			W2 = Areas[i]/((0.5*Ps[i])-(2*(Areas[i]/Ps[i]))); /* Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
+			W3 = Areas[i]/(0.3181*Ps[i]+sqrt(0.033102*Ps[i]*Ps[i]-0.41483*Areas[i])); /* Fiber width from Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */		
+			F1 = Areas[i]/W1; /* Fiber Length from fiber width Lee and Jablonski (John C. Russ  The Image Processing Handbook 7th Ed. Page 612 0.25*(sqrt(P+(P*P-(16*A)))) is incorrect).*/
+			F2 = (0.5*Ps[i])-(2*(Areas[i]/Ps[i])); /* Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
+			F3 = 0.3181*Ps[i]+sqrt(0.033102*Ps[i]*Ps[i]-0.41483*Areas[i]); /* Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */
+		}
+		if (outputResult[arrayRankMatch(analyses,"Hex")] || outputResult[arrayRankMatch(analyses,"Hxg")]){
+			HxgnSide = sqrt((2*Areas[i])/(3*sqrt(3))); /*the length of each hexagonal side */
+			Ps2A = pow(Ps[i],2)/Areas[i];
+			HSFideal = 8 * sqrt(3); /* Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x */
+		}
+		if (outputResult[arrayRankMatch(analyses,"FiberThk_Snake")])
+			setResult("FbrThSnk" +unitLabel, i, W1); /* Adds new Ribbon Thickness column to end of results table */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Thk_Russ1")])
+			setResult("FbrThRss1" +unitLabel, i, W2); /* Adds new fiber width column to end of results table. */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Thk_Russ2")])
+			setResult("FbrThRss2" +unitLabel, i, W3); /* Adds new fiber width column to end of results table. */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Snake")])
+			setResult("FbrLSnk" +unitLabel, i, F1); /* Adds new fiber length column to end of results table. */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Russ1")])
+			setResult("FbrLRss1" +unitLabel, i, F2); /* Adds new fiber length column to end of results table. */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Lngth_Russ2")])
+			setResult("FbrLRss2" +unitLabel, i, F3); /* Adds new fiber length column to end of results table. */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Snake_Curl")])
+			setResult("FbrSnkCrl", i, BL/F1); /* Adds Curl for Fiber 1 calculated and bounding length */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Russ1_Curl")])
+			setResult("FbrRss1Crl", i, BL/F2); /* Adds Curl for Fiber Russ 1 calculated and bounding length */
+		if (outputResult[arrayRankMatch(analyses,"Fiber_Russ2_Curl")])
+			setResult("FbrRss2Crl", i, BL/F3); /* Adds Curl for Fiber Russ 2 calculated and bounding length */
 		G = Ps[i]/(2*Areas[i]);  /* Calculates Interface Density (e.g. grain boundary density based on the interfaces between objects being shared. */
-		if (outputResult[arrayRankMatch(analyses,"Interfacial_Density")]) setResult("Intfc_D" + "\(" + unit + supminus + supone + "\)", i, G); /* Adds new IntD column to end of results table - remember no spaces allowed in label. */
-		GL = d2s(G,4); /* Reduce Decimal places for labeling. */
-		ARFL1 = F1/W1; /* Aspect ratio from fiber length approximation 1. */
-		if (outputResult[arrayRankMatch(analyses,"AR_Fiber_Snake")]) setResult("AR_FiberSnk", i, ARFL1); /* adds fitted ellipse aspect ratio. */
-		ARFL2 = F2/W2; /* Aspect ratio from fiber length approximation 2. */
-		if (outputResult[arrayRankMatch(analyses,"AR_Fiber_Russ1")]) setResult("AR_FiberRuss1", i, ARFL2); /* adds fitted ellipse aspect ratio. */
-		ARFL3 = F3/W3; /* Aspect ratio from fiber length approximation 3. */
-		if (outputResult[arrayRankMatch(analyses,"AR_Fiber_Russ2")]) setResult("AR_FiberRuss2", i, ARFL3); /* adds fitted ellipse aspect ratio. */
-		Thinnes = 4*PI*Areas[i]/(Ps[i]*Ps[i]); /* see http://imagej.net/Shape_Filter */
-		if (outputResult[arrayRankMatch(analyses,"Thinnes_Ratio")]) setResult("Thinnes_Ratio", i, Thinnes); /* adds Thinnes ratio. */
-		EXT = Areas[i]/(BWs[i] * BHs[i]); 
-		if (outputResult[arrayRankMatch(analyses,"Extent")]) setResult("Extent", i, EXT); /* adds Extent ratio, which is the object area/bounding rectangle area */
-		HexSide = sqrt((2*Areas[i])/(3*sqrt(3))); /* Some descriptions for 2D hexagonal close-packed structures */
-		if (outputResult[arrayRankMatch(analyses,"Hxgn_Side")]) setResult("HexSide" +unitLabel, i, HexSide); /* adds the length of each hexagonal side */
-		if (outputResult[arrayRankMatch(analyses,"Hxgn_Perim")]) setResult("HexPerim" +unitLabel, i, 6 * HexSide); /* adds total perimeter of hexagon */
-		HSFideal = 8 * sqrt(3); /* Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x */
-		if (outputResult[arrayRankMatch(analyses,"Hxgn_Shape_Factor")]) setResult("HSF", i, abs(((Ps[i] * Ps[i])/Areas[i])-HSFideal)); /* Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 */
-		if (outputResult[arrayRankMatch(analyses,"Hxgn_Shape_Factor_R")]) setResult("HSFR", i, abs(HSFideal/((Ps[i] * Ps[i])/Areas[i]))); /* Hexagonal Shape Factor as ratio to the ideal HSF, the value for a perfect hexagon is 1 */
-		if (outputResult[arrayRankMatch(analyses,"Hexagonality")]) setResult("Hexagonality", i, 6*HexSide/Ps[i]); /* adds a term to indicate accuracy of hexagon approximation */
-		VolPr = (PI/6) * Ferets[i] * MinFerets[i] * MinFerets[i];
-		if (outputResult[arrayRankMatch(analyses,"Vol_Pointed_Spheroid")]) setResult("Vol_PtdSphr" + "\(" + unit + supthree + "\)", i, VolPr); /* adds prolate ellipsoid (an American football) volume: Hilliard 1968, Russ p. 189 */
-		VolOb = (PI/6) *MinFerets[i] * Ferets[i] * Ferets[i];
-		if (outputResult[arrayRankMatch(analyses,"Vol_Discus_Spheroid")]) setResult("Vol_Discus" + "\(" + unit + supthree + "\)", i, VolOb); /* adds oblate ellipsoid (a discus) volume: Hilliard 1968, Russ p. 189 */
+		if (outputResult[arrayRankMatch(analyses,"Interfacial_Density")])
+			setResult("Intfc_D" + "\(" + unit + supminus + supone + "\)", i, G); /* Adds new IntD column to end of results table - remember no spaces allowed in label. */
+		// GL = d2s(G,4); /* Reduce Decimal places for labeling. */
+		if (outputResult[arrayRankMatch(analyses,"AR_Fiber_Snake")])
+			setResult("AR_FbrSnk", i, F1/W1); /* Aspect ratio from fiber length approximation 1. */
+		if (outputResult[arrayRankMatch(analyses,"AR_Fiber_Russ1")])
+			setResult("AR_FbrRuss1", i, F2/W2); /* Aspect ratio from fiber length approximation 2. */
+		if (outputResult[arrayRankMatch(analyses,"AR_Fiber_Russ2")]) 
+			setResult("AR_FbrRuss2", i, F3/W3); /* aspect ratio from fiber length approximation*/
+		if (outputResult[arrayRankMatch(analyses,"Extent")])
+			setResult("Extent", i, Areas[i]/(BL * BS)); /* adds Extent ratio, which is the object area/bounding rectangle area */
+		if (outputResult[arrayRankMatch(analyses,"Hxgn_Side")])
+			setResult("HxgnSide" +unitLabel, i, HxgnSide); /* adds the length of each hexagonal side */
+		if (outputResult[arrayRankMatch(analyses,"Hxgn_Perim")])
+			setResult("HxgnPerim" +unitLabel, i, 6 * HxgnSide); /* adds total perimeter of hexagon */
+		if (outputResult[arrayRankMatch(analyses,"Hxgn_Shape_Factor")])
+			setResult("HSF", i, abs(Ps2A-HSFideal)); /* Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 */
+		if (outputResult[arrayRankMatch(analyses,"Hxgn_Shape_Factor_R")])
+			setResult("HSFR", i, abs(HSFideal/Ps2A)); /* Hexagonal Shape Factor as ratio to the ideal HSF, the value for a perfect hexagon is 1 */
+		if (outputResult[arrayRankMatch(analyses,"Hexagonality")])
+			setResult("Hxgnlty", i, 6*HxgnSide/Ps[i]); /* adds a term to indicate accuracy of hexagon approximation */
+		if (outputResult[arrayRankMatch(analyses,"Vol_Pointed_Spheroid")])
+			setResult("Vol_PtdSphr" + "\(" + unit + supthree + "\)", i, (PI/6) * Ferets[i] * pow(MinFerets[i],2)); /* adds prolate ellipsoid (an American football) volume: Hilliard 1968, Russ p. 189 */
+		if (outputResult[arrayRankMatch(analyses,"Vol_Discus_Spheroid")])
+			setResult("Vol_Discus" + "\(" + unit + supthree + "\)", i, (PI/6) * MinFerets[i] * pow(Ferets[i],2)); /* adds oblate ellipsoid (a discus) volume: Hilliard 1968, Russ p. 189 */
 	}
 	updateResults();
 	setBatchMode("exit & display"); /* exit batch mode */
@@ -250,7 +305,3 @@ macro "Add Additional Geometrical Analyses to Results" {
 		}
 		return string;
 	}
-	/*
-				Required ImageJ Functions
-	*/
-	function requires152m() {requires("1.52m"); return 0; }
