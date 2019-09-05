@@ -14,7 +14,7 @@
 		Changed measurement naming philosophy (column titles stay abbreviated to keep column widths narrow but in the dialog selection box the geometry names expanded so that they are a little bit more descriptive. Some of the output names were changed too.
 	v190815 Help button provides more information on each measurement.
 	v190830 Corrected Thinnes ratio (which was inverted :-$ ). Redefined Elongation to 1 - (short box side/long box side). Added Circularity corrected by aspect ratio (Takashimizu and Iiyoshi). Abbreviated some names and made code more efficient.
-	v190904 Now works uses table values exclusively rather than Results.
+	v190904-v190905 Now works uses table values exclusively rather than Results.
 	*/
 macro "Add Additional Geometrical Analyses to Results" {
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
@@ -187,7 +187,7 @@ macro "Add Additional Geometrical Analyses to Results" {
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
 	Dialog.create("Select Extended Geometrical Analyses");
 		if (roiManager("count")!=nTable) {
-			outputResult[arrayRankMatch(analyses,"Feret_Coords",NaN)] = false;
+			outputResult[arrayRankMatch3(analyses,"Feret_Coords",NaN)] = false;
 			Dialog.addMessage("Extended Feret Coords requires ROIs");
 		}
 		Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,outputResult);
