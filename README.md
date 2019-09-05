@@ -1,8 +1,12 @@
 # imageJ-extended-geometries
-Simple macro to add historically common descriptions such as area equivalent diameter and fiber thickness to the ImageJ Results table using the macro in this: <a href="https://github.com/peterjlee/imageJ-extended-geometries"  Title = "Applied Superconductivity Center Extended Geometrical Analyses Macro Directory" >directory</a>.</p><p>The additional measurements in this version are:</p>
+Simple macro to illustrate how historically common descriptions such as area equivalent diameter and fiber thickness as well as new geometries can be added to an ImageJ Results table: <a href="https://github.com/peterjlee/imageJ-extended-geometries"  Title = "Applied Superconductivity Center Extended Geometrical Analyses Macro Directory" >directory</a>.</p><p>The additional measurements in this version are:</p>
 <p>&nbsp;&nbsp;&nbsp;Interfacial density (assuming each interface is shared by two objects - e.g. grain boundary density).<br />
 &nbsp;&nbsp;&nbsp;Area equivalent diameter  (AKA Heywood diameter): The &quot;diameter&quot; of an object obtained from the area assuming a circular geometry.<br />
 &nbsp;&nbsp;&nbsp;Perimeter equivalent diameter: The &quot;diameter&quot; calculated from the perimeter  assuming a circular geometry.<br />
+ &nbsp;&nbsp;&nbsp;Roundnesss_cAR: Circularity corrected by aspect ratio,<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Takashimizu and Iiyoshi Progress in Earth and Planetary Science (2016) 3:2<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; https://doi.org/10.1186/s40645-015-0078-x<br />"
+  
 &nbsp;&nbsp;&nbsp;Round end ribbon thickness from repeating half-annulus - like a snake or Loch Ness Monster perhaps (Lee &amp; Jablonski LTSW'94).<br />  &nbsp;&nbsp;&nbsp;Two calculated fiber widths obtained from the fiber length from <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy, page 189.</a><br />
 &nbsp;&nbsp;&nbsp;Fiber length from fiber width (Lee and Jablonski LTSW'94; modified from the formula in  <a href="https://www.crcpress.com/The-Image-Processing-Handbook-Seventh-Edition/Russ-Neal/p/book/9781498740265">John C. Russ, Image Processing Handbook 7th Ed.</a> Page 612).<br />
 &nbsp;&nbsp;&nbsp;Two estimates of fiber length obtained from the formulas in <a href="http://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy page, 189.</a><br />
@@ -15,4 +19,4 @@ Simple macro to add historically common descriptions such as area equivalent dia
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonality = 6 * HexSide/Perimeter <br />
 &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m <br />
 Preferences are saved in the user IJ_prefs file. Help button provides more information on each measurement.</p>
-<p><img src="https://fs.magnet.fsu.edu/~lee/asc/ImageJUtilities/IA_Images/ASC_Extended_Geometries_Menu_v190815_721x329_PAL128.png" alt="ASC_Extended Geometries Menu" height="250" /> </p>
+<p><img src="https://fs.magnet.fsu.edu/~lee/asc/ImageJUtilities/IA_Images/ASC_Extended_Geometries_Menu_721x479_v190905_PAL32.png" alt="ASC_Extended Geometries Menu" height="250" /> </p>
