@@ -18,3 +18,10 @@ Simple macro to illustrate how historically common descriptions such as area equ
 &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m <br />
 Preferences are saved in the user IJ_prefs file. Help button provides more information on each measurement.</p>
 <p><img src="https://fs.magnet.fsu.edu/~lee/asc/ImageJUtilities/IA_Images/ASC_Extended_Geometries_Menu_721x479_v190905_PAL32.png" alt="ASC_Extended Geometries Menu"> </p>
+<p><sub><sup>
+ <strong>Legal Notice:</strong> <br />
+These macros have been developed to demonstrate the power of the ImageJ macro language and we assume no responsibility whatsoever for its use by other parties, and make no guarantees, expressed or implied, about its quality, reliability, or any other characteristic. On the other hand we hope you do have fun with them without causing harm.
+<br />
+The macros are continually being tweaked and new features and options are frequently added, meaning that not all of these are fully tested. Please contact me if you have any problems, questions or requests for new modifications.
+ </sup></sub>
+</p>
