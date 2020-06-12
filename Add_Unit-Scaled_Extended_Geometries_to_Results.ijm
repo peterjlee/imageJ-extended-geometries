@@ -20,8 +20,10 @@
 	v200515 Added square geometries relevant to diamond indent hardness measurements.
 	v200518 Added square geometries and ROI names import option.
 	v200526 Added information columns: scale, image names  v200604 Just removed superscript minus symbol for compatibility with Excel and macro import
+	v200611 This versions allows embedding and retrieval of image scale information in the table
 	*/
 macro "Add Additional Geometries to Table" {
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v200611.ijm";
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	nTable = Table.size;
@@ -51,21 +53,39 @@ macro "Add Additional Geometries to Table" {
 		selectWindow("Results");
 		tableTitle = "Results";
 	}
-	if (nImages!=0) getPixelSize(unit, pixelWidth, pixelHeight);
-	else {
-		Dialog.create("No images open, please enter unit values");
-			Dialog.addRadioButtonGroup("Perhaps there should be an open image?", newArray("continue","exit"),2,1,"continue");
-			print("No images were open, expanded Feret coordinates will not be added to table.");
-			Dialog.addNumber("pixel width",1,10,10,"units");
-			Dialog.addNumber("pixel height",1,10,10,"units");
-			unitChoices = newArray("m","cm","mm","µm","microns","nm","Å","pm","inches");
-			Dialog.addChoice("units",unitChoices,"pixels");
-			Dialog.show;
-			if (Dialog.getRadioButton=="exit") exit;
-			pixelWidth = Dialog.getNumber;
-			pixelHeight = Dialog.getNumber;
-			unit = Dialog.getChoice;
+	/* Check table for embedded scale */
+	tableScale = false;
+	if (Table.size!=0){
+		tablePW = Table.get("PixelWidth",1); /* This value embedded in the table by some ASC macros */
+		tablePAR = Table.get("PixelAR",1); /* This value embedded in the table by some ASC macros */
+		tableUnit = Table.getString("Unit",1); /* This value embedded in the table by some ASC macros */
+		tableTitle = Table.title;
+		if (tablePW!=NaN && tablePAR!=NaN && tableUnit!="null"){
+			tableScale = true;
+			pixelWidth = parseFloat(tablePW); /* I don't know why parseFloat is necessary but it is  ¯\_(?)_/¯  */
+			pixelAR = parseFloat(tablePAR); /* I don't know why parseFloat is necessary but it is  ¯\_(?)_/¯  */
+			pixelHeight = pixelWidth/pixelAR;
+			unit = tableUnit;
+		}
 	}
+	if (!tableScale){
+		if (nImages!=0) getPixelSize(unit, pixelWidth, pixelHeight);
+		else {
+			Dialog.create("No images open, please enter unit values");
+				Dialog.addRadioButtonGroup("Perhaps there should be an open image?", newArray("continue","exit"),2,1,"continue");
+				print("No images were open, expanded Feret coordinates will not be added to table.");
+				Dialog.addNumber("pixel width",1,10,10,"units");
+				Dialog.addNumber("pixel height",1,10,10,"units");
+				unitChoices = newArray("m","cm","mm","µm","microns","nm","Å","pm","inches");
+				Dialog.addChoice("units",unitChoices,"pixels");
+				Dialog.show;
+				if (Dialog.getRadioButton=="exit") exit;
+				pixelWidth = Dialog.getNumber;
+				pixelHeight = Dialog.getNumber;
+				unit = Dialog.getChoice;
+		}
+	}
+	pixelAR = pixelWidth/pixelHeight;
 	lcf = (pixelWidth + pixelHeight)/2;
 	unitLabel = "\(" + unit + "\)";
 	 
@@ -139,7 +159,7 @@ macro "Add Additional Geometries to Table" {
 	}
 	if (missing > 0) exit("" + missing + " required columns " + resultsMissing + " are missing");
 	/* The measurements are split into groups for organization purposes and then recombined for simplicity of use with Dialog.addCheckboxGroup */
-	analysesI = newArray("Pxl_Dims","Unit","Object#","ROI_name", "Image_Name"); /* Information */
+	analysesI = newArray("Image_Scale","Unit","Object#","ROI_name", "Image_Name"); /* Information */
 	analysesF = newArray("AR_Bounding_Rect","AR_Feret","Roundness_Feret","Compactness_Feret", "Feret_Coords");
 	analysesA = newArray("Angle_0-90", "FeretAngle_0-90","CircToEllipse_Tilt");
 	analysesPx = newArray("X\(px\)","Y\(px\)","XM\(px\)","YM\(px\)","BX\(px\)","BY\(px\)","Bounding_Rect_W\(px\)","Bounding_Rect_H\(px\)");
@@ -185,6 +205,9 @@ macro "Add Additional Geometries to Table" {
 	checkboxGroupColumns = 5;
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
 	Dialog.create("Select Extended Geometrical Analyses");
+		Dialog.addMessage("Macro filename: " + lMacro);
+		if (tableScale) Dialog.addMessage("Scale imported from embedded table data");
+		if (pixelAR!=1) Dialog.addMessage("IMPORTANT: The pixels are not reported as square, these extended geometries have not been tested for this condition.");
 		if (roiManager("count")!=nTable || nImages==0) {
 			outputResult[indexOfArray(analyses,"Feret_Coords",NaN)] = false;
 			Dialog.addMessage("Extended Feret Coordinates series requires ROIs and an open image");
@@ -235,17 +258,23 @@ macro "Add Additional Geometries to Table" {
 		for (i=0; i<nTable; i++) Table.set("Image_Name", i, fullFName);
 	}
 	if (lcf!=1) {
-		tableSetColumnValue("Pxl_Dims",lcf);
-		if (outputResult[indexOfArray(analyses,"Unit",NaN)]) for (i=0; i<nTable; i++) Table.set("Unit", i, unit);
-		if (outputResult[indexOfArray(analyses,"X\(px\)",NaN)]) {Table.applyMacro("X_px = X/Pxl_Dims");}
-		if (outputResult[indexOfArray(analyses,"Y\(px\)",NaN)]) {Table.applyMacro("Y_px = Y/Pxl_Dims");}
-		if (outputResult[indexOfArray(analyses,"XM\(px\)",NaN)]) {Table.applyMacro("XM_px = XM/Pxl_Dims");}
-		if (outputResult[indexOfArray(analyses,"YM\(px\)",NaN)]) {Table.applyMacro("YM_px = YM/Pxl_Dims");}
-		if (outputResult[indexOfArray(analyses,"BX\(px\)",NaN)]) {Table.applyMacro("BX_px = round(BX/Pxl_Dims)");}
-		if (outputResult[indexOfArray(analyses,"BY\(px\)",NaN)]) {Table.applyMacro("BY_px = round(BY/Pxl_Dims)");}
-		if (outputResult[indexOfArray(analyses,"Bounding_Rect_W\(px\)",NaN)]) {Table.applyMacro("BoxW_px = round(Width/Pxl_Dims)");}
-		if (outputResult[indexOfArray(analyses,"Bounding_Rect_H\(px\)",NaN)]) {Table.applyMacro("BoxH_px = round(Height/Pxl_Dims)");}
-		if (!outputResult[indexOfArray(analyses,"Pxl_Dims",NaN)])	Table.deleteColumn("Pxl_Dims");
+		tableSetColumnValue("lcf",lcf);
+		if (outputResult[indexOfArray(analyses,"Image_Scale",NaN)]){
+			for (i=0; i<nTable; i++){
+				Table.set("Unit", i, unit);
+				Table.set("PixelWidth", i, pixelWidth);
+				Table.set("PixelAR", i, pixelAR);
+			}
+		}
+		if (outputResult[indexOfArray(analyses,"X\(px\)",NaN)]) {Table.applyMacro("X_px = X/lcf");}
+		if (outputResult[indexOfArray(analyses,"Y\(px\)",NaN)]) {Table.applyMacro("Y_px = Y/lcf");}
+		if (outputResult[indexOfArray(analyses,"XM\(px\)",NaN)]) {Table.applyMacro("XM_px = XM/lcf");}
+		if (outputResult[indexOfArray(analyses,"YM\(px\)",NaN)]) {Table.applyMacro("YM_px = YM/lcf");}
+		if (outputResult[indexOfArray(analyses,"BX\(px\)",NaN)]) {Table.applyMacro("BX_px = round(BX/lcf)");}
+		if (outputResult[indexOfArray(analyses,"BY\(px\)",NaN)]) {Table.applyMacro("BY_px = round(BY/lcf)");}
+		if (outputResult[indexOfArray(analyses,"Bounding_Rect_W\(px\)",NaN)]) {Table.applyMacro("BoxW_px = round(Width/lcf)");}
+		if (outputResult[indexOfArray(analyses,"Bounding_Rect_H\(px\)",NaN)]) {Table.applyMacro("BoxH_px = round(Height/lcf)");}
+		Table.deleteColumn("lcf");
 	}
 	Table.update;
 	if((roiManager("count")==nTable) && outputResult[indexOfArray(analyses,"ROI_name",NaN)]) {
