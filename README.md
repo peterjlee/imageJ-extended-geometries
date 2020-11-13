@@ -13,8 +13,7 @@ Simple macro to illustrate how historically common descriptions such as area equ
   &nbsp;&nbsp;&nbsp;Fiber length from fiber width (Lee and Jablonski LTSW'94; modified from the formula in <a href="https://www.crcpress.com/The-Image-Processing-Handbook-Seventh-Edition/Russ-Neal/p/book/9781498740265">John C. Russ, Image Processing Handbook 7th Ed.</a> Page 612).<br />
   &nbsp;&nbsp;&nbsp;Two estimates of fiber length and two examples of volumetric estimates from projections obtained from the formulae in <a href="https://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy page, 189.</a><br />
   &nbsp;&nbsp;&nbsp;Additional shape factors: &quot;Compactness&quot; (using Feret diameter as maximum diameter), &quot;Convexity&quot; (using the calculated elliptical fit to obtain a convex perimeter), &quot;<a href="https://imagej.net/Shape_Filter" title="see Imagej.net description of Shape Filters">Thinnes ratio</a>&quot;, &quot;Extent ratio&quot;, Curl etc.<br />
-
-    &nbsp;&nbsp;&nbsp;Square geometries appropriate to HV (hardness) indents:<br />
+  &nbsp;&nbsp;&nbsp; Square geometries appropriate to HV (hardness) indents:<br />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Sqr_Diag_A = &radic;(2*Area) for a NSEW square this length should match the bounding box height and width<br />
    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Like circularity the following &quot;squarity&quot; values should approach 1 for a perfect square:<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Squarity_AP = 1-|1-(16*Area)/Perimeter<sup>2</sup>|&nbsp;&nbsp;&nbsp; (perhaps too sensitive to perimeter error) <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Squarity_AF = 1-|1-Feret/(A*&radic;2)| <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Squarity_Ff = 1-|1-&radic;2/Feret_AR| <br />
