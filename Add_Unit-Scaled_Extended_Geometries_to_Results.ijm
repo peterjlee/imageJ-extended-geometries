@@ -19,11 +19,13 @@
 	v190906 Added intensity column removal option and fixed last row of Object#.
 	v200515 Added square geometries relevant to diamond indent hardness measurements.
 	v200518 Added square geometries and ROI names import option.
-	v200526 Added information columns: scale, image names  v200604 Just removed superscript minus symbol for compatibility with Excel and macro import
-	v200611 This versions allows embedding and retrieval of image scale information in the table
+	v200526 Added information columns: scale, image names  v200604 Just removed superscript minus symbol for compatibility with Excel and macro import.
+	v200611 This versions allows embedding and retrieval of image scale information in the table.
+	v200730 Updated tableSetColumnFunction function and swapped multiple exits from restoreExits.
+	v201130 Corrected TableGet row request for row zero.
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v200611.ijm";
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v201130"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	nTable = Table.size;
@@ -56,14 +58,14 @@ macro "Add Additional Geometries to Table" {
 	/* Check table for embedded scale */
 	tableScale = false;
 	if (Table.size!=0){
-		tablePW = Table.get("PixelWidth",1); /* This value embedded in the table by some ASC macros */
-		tablePAR = Table.get("PixelAR",1); /* This value embedded in the table by some ASC macros */
-		tableUnit = Table.getString("Unit",1); /* This value embedded in the table by some ASC macros */
+		tablePW = Table.get("PixelWidth",0); /* This value embedded in the table by some ASC macros */
+		tablePAR = Table.get("PixelAR",0); /* This value embedded in the table by some ASC macros */
+		tableUnit = Table.getString("Unit",0); /* This value embedded in the table by some ASC macros */
 		tableTitle = Table.title;
 		if (tablePW!=NaN && tablePAR!=NaN && tableUnit!="null"){
 			tableScale = true;
-			pixelWidth = parseFloat(tablePW); /* I don't know why parseFloat is necessary but it is  ¯\_(?)_/¯  */
-			pixelAR = parseFloat(tablePAR); /* I don't know why parseFloat is necessary but it is  ¯\_(?)_/¯  */
+			pixelWidth = parseFloat(tablePW); /* Makes sure this is not a string in the imported table  */
+			pixelAR = parseFloat(tablePAR); /* Makes sure this is not a string in the imported table */
 			pixelHeight = pixelWidth/pixelAR;
 			unit = tableUnit;
 		}
@@ -79,7 +81,7 @@ macro "Add Additional Geometries to Table" {
 				unitChoices = newArray("m","cm","mm","µm","microns","nm","Å","pm","inches");
 				Dialog.addChoice("units",unitChoices,"pixels");
 				Dialog.show;
-				if (Dialog.getRadioButton=="exit") exit;
+				if (Dialog.getRadioButton=="exit") restoreExit;
 				pixelWidth = Dialog.getNumber;
 				pixelHeight = Dialog.getNumber;
 				unit = Dialog.getChoice;
@@ -157,7 +159,7 @@ macro "Add Additional Geometries to Table" {
 			missing += 1;
 		}
 	}
-	if (missing > 0) exit("" + missing + " required columns " + resultsMissing + " are missing");
+	if (missing > 0) restoreExit("" + missing + " required columns " + resultsMissing + " are missing");
 	/* The measurements are split into groups for organization purposes and then recombined for simplicity of use with Dialog.addCheckboxGroup */
 	analysesI = newArray("Image_Scale","Unit","Object#","ROI_name", "Image_Name"); /* Information */
 	analysesF = newArray("AR_Bounding_Rect","AR_Feret","Roundness_Feret","Compactness_Feret", "Feret_Coords");
@@ -201,7 +203,7 @@ macro "Add Additional Geometries to Table" {
 		defaultOffs = newArray("Fiber_Thk_Russ1","Fiber_Lngth_Russ1","AR_Fiber_Russ1","Fiber_Russ1_Curl","Vol_Pointed_Spheroid","Vol_Discus_Spheroid");
 		for (i=0; i<defaultOffs.length; i++)	outputResult[indexOfArray(analyses,defaultOffs[i],NaN)] = false;
 	}
-	if (analyses.length!=outputResult.length) exit("analyses.length = " + analyses.length + " but outputResult.length = " + outputResult.length);
+	if (analyses.length!=outputResult.length) restoreExit("analyses.length = " + analyses.length + " but outputResult.length = " + outputResult.length);
 	checkboxGroupColumns = 5;
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
 	Dialog.create("Select Extended Geometrical Analyses");
@@ -255,16 +257,14 @@ macro "Add Additional Geometries to Table" {
 	}
 	if (nImages!=0 && outputResult[indexOfArray(analyses,"Image_Name",NaN)]) {
 		fullFName = getInfo("image.filename");
-		for (i=0; i<nTable; i++) Table.set("Image_Name", i, fullFName);
+		tableSetColumnValue("Image_Name", fullFName);
 	}
 	if (lcf!=1) {
 		tableSetColumnValue("lcf",lcf);
 		if (outputResult[indexOfArray(analyses,"Image_Scale",NaN)]){
-			for (i=0; i<nTable; i++){
-				Table.set("Unit", i, unit);
-				Table.set("PixelWidth", i, pixelWidth);
-				Table.set("PixelAR", i, pixelAR);
-			}
+			tableSetColumnValue("Unit",unit);
+			tableSetColumnValue("PixelWidth",pixelWidth);
+			tableSetColumnValue("PixelAR",pixelAR);
 		}
 		if (outputResult[indexOfArray(analyses,"X\(px\)",NaN)]) {Table.applyMacro("X_px = X/lcf");}
 		if (outputResult[indexOfArray(analyses,"Y\(px\)",NaN)]) {Table.applyMacro("Y_px = Y/lcf");}
@@ -432,7 +432,14 @@ macro "Add Additional Geometries to Table" {
 			}
 		}
 		return index;
-	}	
+	}
+	function restoreExit(message){ /* Make a clean exit from a macro, restoring previous settings */
+		/* 9/9/2017 added Garbage clean up suggested by Luc LaLonde - LBNL */
+		restoreSettings(); /* Restore previous settings before exiting */
+		setBatchMode("exit & display"); /* Probably not necessary if exiting gracefully but otherwise harmless */
+		call("java.lang.System.gc");
+		exit(message);
+	}
 	function tableColumnRenameOrReplace(oldName,newName){
 		/* 1st version 9/5/2019 11:29 AM PJL 
 			v190906 Add table update  */
@@ -454,12 +461,18 @@ macro "Add Additional Geometries to Table" {
 	}
 	function tableSetColumnValue(columnName,value){
 		/* Original version v190905 to overcome Table macro limitation - PJL 
-			v190906 Add table update  */
-			if (Table.size>0){
+			v190906 Add table update
+			v200730 If value cannot be converted to number it is entered as a string
+		*/
+		if (Table.size>0){
 			tempArray = newArray(Table.size);
-			Array.fill(tempArray, value);
-			Table.setColumn(columnName, tempArray);
-			Table.update;
+			number = parseFloat(value);
+			if (isNaN(number)) for (i=0; i<Table.size; i++) Table.set(columnName, i, value);
+			else {	
+				Array.fill(tempArray, number);
+				Table.setColumn(columnName, tempArray);
+			}
+		Table.update;
 		}
-		else exit("No Table for array fill");
+		else restoreExit("No Table for array fill");
 	}
