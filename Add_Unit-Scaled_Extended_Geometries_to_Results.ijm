@@ -79,7 +79,7 @@ macro "Add Additional Geometries to Table" {
 				print("No images were open, expanded Feret coordinates will not be added to table.");
 				Dialog.addNumber("pixel width",1,10,10,"units");
 				Dialog.addNumber("pixel height",1,10,10,"units");
-				unitChoices = newArray("m","cm","mm","Âµm","microns","nm","Ã…","pm","inches");
+				unitChoices = newArray("m","cm","mm","µm","microns","nm","Å","pm","inches");
 				Dialog.addChoice("units",unitChoices,"pixels");
 				Dialog.show;
 				if (Dialog.getRadioButton=="exit") restoreExit;
