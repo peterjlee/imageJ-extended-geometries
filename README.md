@@ -7,7 +7,7 @@ Simple macro to illustrate how historically common descriptions such as area equ
      &nbsp;&nbsp;&nbsp;Roundnesss_cAR: Circularity corrected by aspect ratio, from Y. Takashimizu and M. Iiyoshi, &quot;New parameter of roundness R: circularity corrected by aspect ratio,&quot; Progress in Earth and Planetary Science, vol. 3, no. 1, p. 2, Jan. 2016. <a href="https://doi.org/10.1186/s40645-015-0078-x"> DOI: 10.1186/s40645-015-0078-x </a><br />
 																							  
   &nbsp;&nbsp;&nbsp;Round end ribbon thickness (&quot;snake&quot;) from repeating half-annulus (Lee &amp; Jablonski LTSW'94).
-      <p><img src="/images/SnakeDiagram_091420_1014x180_PAL32.png" alt="ribbon thiscknes from perimeter of snake" width="50%" /></p>
+      <p><img src="/images/SnakeDiagram_091420_1014x180_PAL32.png" alt="ribbon thickness from perimeter of snake" width="50%" /></p>
       <br />
   &nbsp;&nbsp;&nbsp;Two calculated fiber widths obtained from the fiber length from <a href="https://www.springer.com/us/book/9781461278689">John C. Russ, Computer Assisted Microscopy, page 189.</a><br />
   &nbsp;&nbsp;&nbsp;Fiber length from fiber width (Lee and Jablonski LTSW'94; modified from the formula in <a href="https://www.crcpress.com/The-Image-Processing-Handbook-Seventh-Edition/Russ-Neal/p/book/9781498740265">John C. Russ, Image Processing Handbook 7th Ed.</a> Page 612).<br />
