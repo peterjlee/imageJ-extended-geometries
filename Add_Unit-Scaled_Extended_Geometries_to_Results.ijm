@@ -25,9 +25,10 @@
 	v201130 Corrected TableGet row request for row zero. v201204 Various tweaks to try and debug issue with unit and file name not being output to table.
 	v210825-7 Does not offer to delete "same value" columns if there is only 1 row. Replaces "-Infinity" entries (incompatible with macro table functions) with symbol and restores entries afterwards
 	v211027 Uses selectResultsWindow function
+	v220307-8 Reworked saved preferences to be more robust. Added "blank" column option. 
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v211027"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v220308"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
@@ -104,7 +105,6 @@ macro "Add Additional Geometries to Table" {
 	pixelAR = pixelWidth/pixelHeight;
 	lcf = (pixelWidth + pixelHeight)/2;
 	unitLabel = "\(" + unit + "\)";
-	 
 	supminus = "^-"; /* the character code fromCharCode(0x207B) does not seem to work as exported to Excel and when called into other macros */
 	supone = fromCharCode(0x00B9); /* UTF-16 (hex) C/C++/Java source code 	"\u00B9" */
 	suptwo = fromCharCode(0x00B2); /* UTF-16 (hex) C/C++/Java source code 	"\u00B2" */
@@ -187,6 +187,7 @@ macro "Add Additional Geometries to Table" {
 	analysesV = newArray("Vol_Pointed_Spheroid","Vol_Discus_Spheroid");
 	analyses1 = Array.concat(analysesI,analysesF,analysesA);
 	analyses3 = Array.concat(analysesD,analysesB,analysesS,analysesH,analysesM,analysesV);
+	defaultOffs = newArray("Blank","Fiber_Thk_Russ1","Fiber_Lngth_Russ1","AR_Fiber_Russ1","Fiber_Russ1_Curl","Vol_Pointed_Spheroid","Vol_Discus_Spheroid");
 	if (lcf!=1) {
 		analyses = Array.concat(analyses1,analysesPx,analyses3);
 		prefsNameKey = "ascExtGeoPrefs_LCF.";
@@ -195,41 +196,38 @@ macro "Add Additional Geometries to Table" {
 		analyses = Array.concat(analyses1,analyses3);
 		prefsNameKey = "ascExtGeoPrefs.";
 	}
-	prefsAnalyses = call("ij.Prefs.get", prefsNameKey+"Analyses", "None");
-	prefsAnalysesOn = call("ij.Prefs.get", prefsNameKey+"AnalysesOn", "None");
-	if (prefsAnalyses!="None" && prefsAnalysesOn!="None") {
-		lastUsedAnalyses = split(prefsAnalyses,prefsDelimiter);
-		lastUsedAnalysesOn = split(prefsAnalysesOn,prefsDelimiter);
-		if (analyses.length==lastUsedAnalysesOn.length) outputResult = lastUsedAnalysesOn; /* if new measurements are added the prefs are reset */
-		else {
-			outputResult = newArray(analyses.length);
-			Dialog.create("Reset analysis selections");
-			Dialog.addRadioButtonGroup("Choose reset mode \(all analyses or none\):",newArray("all","none"),1,2,"all");
-			Dialog.show;
-			if (Dialog.getRadioButton=="none")	outputResult = Array.fill(outputResult, false);
-			else outputResult = Array.fill(outputResult, true);
-		}
+	analyses = Array.concat("Blank",analyses); /* An empty column - mostly as a static zero array index for later */
+	defaultAnalyses = newArray();
+	for (i=0,j=0; i<lengthOf(analyses); i++) if(indexOfArray(defaultOffs,analyses[i],-1)<0){
+		defaultAnalyses[j] = analyses[i];
+		j++;
 	}
-	else {
-		outputResult = newArray(analyses.length);
-		outputResult = Array.fill(outputResult, true);
-		/* Example of how to uncheck analyses that you do not think should be default inclusions. */ 
-		defaultOffs = newArray("Fiber_Thk_Russ1","Fiber_Lngth_Russ1","AR_Fiber_Russ1","Fiber_Russ1_Curl","Vol_Pointed_Spheroid","Vol_Discus_Spheroid");
-		for (i=0; i<defaultOffs.length; i++)	outputResult[indexOfArray(analyses,defaultOffs[i],false)] = false;
+	prefsAnalysesSelected = call("ij.Prefs.get", prefsNameKey+"AnalysesSelected", "Empty");
+	if (prefsAnalysesSelected!="Empty"){
+		/* clean up old prefs */
+		prefsAnalyses = call("ij.Prefs.set", prefsNameKey+"Analyses", "");
+		prefsAnalysesOn = call("ij.Prefs.set", prefsNameKey+"AnalysesOn", "");
+		/* End cleanup */
+		if(prefsAnalysesSelected!="None") chosenAnalyses = split(prefsAnalysesSelected,prefsDelimiter);
+		else chosenAnalyses = newArray();
 	}
-	if (analyses.length!=outputResult.length) restoreExit("analyses.length = " + analyses.length + " but outputResult.length = " + outputResult.length);
+	else chosenAnalyses = defaultAnalyses;
+	chosenResultCheck = newArray(lengthOf(analyses));
+	chosenResultCheck = Array.fill(chosenResultCheck,false);
+	for (i=0; i<lengthOf(chosenResultCheck); i++){
+		if(indexOfArray(chosenAnalyses,analyses[i],-1)>=0) chosenResultCheck[i] = true;
+	}
 	checkboxGroupColumns = 5;
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
-	Dialog.create("Select Extended Geometrical Analyses");
-		Dialog.addMessage("Macro filename: " + lMacro);
+	Dialog.create("Select Extended Geometrical Analyses: " + lMacro);
 		Dialog.setInsets(-5, 20, 0);
 		Dialog.addMessage("Image file name: " + fullFName);
 		if (tableScale){
-			Dialog.setInsets(-5, 20, 0);
-			Dialog.addMessage("Pixel Width = " + parseFloat(tablePW) + ", Pixel AR = " + parseFloat(tablePAR) + ", Unit = " + tableUnit + " - - - Scale imported from embedded table data");
 			getPixelSize(iUnit, iPixelWidth, iPixelHeight);
 			Dialog.setInsets(-5, 20, 0);
 			Dialog.addMessage("Pixel Width = " + iPixelWidth + ", Pixel AR = " + iPixelWidth/iPixelHeight + ", Unit = " + iUnit + " - - - Active image scale");
+			Dialog.setInsets(-5, 20, 0);
+			Dialog.addMessage("Pixel Width = " + parseFloat(tablePW) + ", Pixel AR = " + parseFloat(tablePAR) + ", Unit = " + tableUnit + " - - - Scale imported from embedded table data");
 		}
 		else {
 			Dialog.setInsets(-5, 20, 0);
@@ -237,19 +235,29 @@ macro "Add Additional Geometries to Table" {
 		}
 		if (pixelAR!=1) Dialog.addMessage("IMPORTANT: The pixels are not reported as square, these extended geometries have not been tested for this condition.");
 		if (roiManager("count")!=nTable || nImages==0) {
-			outputResult[indexOfArray(analyses,"Feret_Coords",false)] = false;
-			Dialog.addMessage("Extended Feret Coordinates series requires ROIs and an open image");
+			iFeretC = indexOfArray(analyses,"Feret_Coords",-1);
+			if (iFeretC>=0) Array.deleteIndex(analyses,iFeretC);
+			Dialog.addMessage("Extended Feret Coordinates series not available as they require ROIs and an open image",12,"#782F40");
 		}
-		Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,outputResult);
-		Dialog.addCheckbox("Select all \(override selections above\)",false);
-		Dialog.addRadioButtonGroup("Set preferences for next run:", newArray("Use these settings", "select all","select none","reset"),4,1,"Use these settings");
-		if (nTable>1) Dialog.addCheckbox("Table cleanup: Remove Mean,StdDev,Mode,Min,Max,IntDen,Median,Skew,Kurt,%Area,RawIntDen, columns if all the same", true);
+		Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,chosenResultCheck);
+		Dialog.addRadioButtonGroup("Override above selections with:",newArray("No","Select All","Default Analyses"),1,3,"No");
+		Dialog.addRadioButtonGroup("Set preferences for next run:", newArray("Use Current Selection", "Select All","Select None","Default Analyses"),1,5,"Use Current Selection");
+		if (nTable>1){
+			Dialog.setInsets(20, 20, 0); /* (top, left, bottom) */
+			Dialog.addMessage("The following option removes certain columns but ONLY if all the values in the column are identical");
+			Dialog.addCheckbox("Discard: Mean, StdDev, Mode, Min, Max, IntDen, Median, Skew, Kurt, %Area, RawIntDen", true);
+		}
 		Dialog.addHelp(html);
-		Dialog.show();
-		for (i=0; i<outputResult.length; i++) outputResult[i] = Dialog.getCheckbox();
-		if (Dialog.getCheckbox) for (i=0; i<outputResult.length; i++) outputResult[i] = true;
-		analysesPrefsKey = prefsNameKey+"Analyses";
-		analysesOnPrefsKey = prefsNameKey+"AnalysesOn";
+	Dialog.show();
+		for (i=0,j=0; i<analyses.length; i++){
+			if (Dialog.getCheckbox()){
+				chosenAnalyses[j] = analyses[i];
+				j++;
+			}
+		}
+		overrideSelection = Dialog.getRadioButton();
+		if (overrideSelection=="Select All") chosenAnalyses = analyses;  /* Select All */
+		else if (overrideSelection=="Default Analyses") chosenAnalyses = defaultAnalyses;  /* Select defaults */
 		nextRunSettings = Dialog.getRadioButton();
 		if (nTable>1) columnCleanup = Dialog.getCheckbox();
 		else columnCleanup = false;
@@ -269,48 +277,45 @@ macro "Add Additional Geometries to Table" {
 			}
 		}
 	}
-	if (nextRunSettings=="reset") {
-		call("ij.Prefs.set", analysesPrefsKey, "None");
-		call("ij.Prefs.set", analysesOnPrefsKey, "None");
-		print("prefs reset");
-	}
-	else {
-		if (nextRunSettings=="select all") for (i=0;i<analyses.length; i++) outputResult[i] = true;
-		if (nextRunSettings=="select none") for (i=0;i<analyses.length; i++) outputResult[i] = false;
-		analysesString = arrayToString(analyses,prefsDelimiter);
-		analysesOnString = arrayToString(outputResult,prefsDelimiter);
-		call("ij.Prefs.set", analysesPrefsKey, analysesString);
-		call("ij.Prefs.set", analysesOnPrefsKey, analysesOnString);
-	}
-	if (nImages>0 && outputResult[indexOfArray(analyses,"Image_Name",false)]) {
+	analysesSelectedKey = prefsNameKey + "AnalysesSelected";
+	if (lengthOf(chosenAnalyses)<1) restoreExit("No analyses chosen");
+	chosenAnalysesString = arrayToString(chosenAnalyses,prefsDelimiter);
+	if (nextRunSettings=="Default Analyses") call("ij.Prefs.set", analysesSelectedKey, arrayToString(defaultAnalyses,prefsDelimiter));
+	else if (nextRunSettings=="Select All") call("ij.Prefs.set", analysesSelectedKey, arrayToString(analyses,prefsDelimiter));
+	else if (nextRunSettings=="Select None") call("ij.Prefs.set", analysesSelectedKey, "None");
+	else call("ij.Prefs.set", analysesSelectedKey, chosenAnalysesString);
+	blankCheck = indexOf(chosenAnalysesString,"Blank");
+	if (blankCheck>=0) tableSetColumnValue("Blank", ""); /* "Blank should be the 1st array value so this is the only one that can be zero */
+	
+	if (nImages>0 && indexOf(chosenAnalysesString,"Image_Name")>=0) {
 		tableSetColumnValue("Image_Name", fullFName);
 	}
 	if (lcf!=1) {
 		tableSetColumnValue("lcf",lcf);
-		if (outputResult[indexOfArray(analyses,"Image_Scale",false)]){
+		if (indexOf(chosenAnalysesString,"Image_Scale")>=0){
 			tableSetColumnValue("Unit",unit);
 			tableSetColumnValue("PixelWidth",pixelWidth);
 			tableSetColumnValue("PixelAR",pixelAR);
 		}
-		if (outputResult[indexOfArray(analyses,"X\(px\)",false)]) {Table.applyMacro("X_px = X/lcf");}
-		if (outputResult[indexOfArray(analyses,"Y\(px\)",false)]) {Table.applyMacro("Y_px = Y/lcf");}
-		if (outputResult[indexOfArray(analyses,"XM\(px\)",false)]) {Table.applyMacro("XM_px = XM/lcf");}
-		if (outputResult[indexOfArray(analyses,"YM\(px\)",false)]) {Table.applyMacro("YM_px = YM/lcf");}
-		if (outputResult[indexOfArray(analyses,"BX\(px\)",false)]) {Table.applyMacro("BX_px = round(BX/lcf)");}
-		if (outputResult[indexOfArray(analyses,"BY\(px\)",false)]) {Table.applyMacro("BY_px = round(BY/lcf)");}
-		if (outputResult[indexOfArray(analyses,"Bounding_Rect_W\(px\)",false)]) {Table.applyMacro("BoxW_px = round(Width/lcf)");}
-		if (outputResult[indexOfArray(analyses,"Bounding_Rect_H\(px\)",false)]) {Table.applyMacro("BoxH_px = round(Height/lcf)");}
+		if (indexOf(chosenAnalysesString,"X\(px\)")>=0) {Table.applyMacro("X_px = X/lcf");}
+		if (indexOf(chosenAnalysesString,"Y\(px\)")>=0) {Table.applyMacro("Y_px = Y/lcf");}
+		if (indexOf(chosenAnalysesString,"XM\(px\)")>=0) {Table.applyMacro("XM_px = XM/lcf");}
+		if (indexOf(chosenAnalysesString,"YM\(px\)")>=0) {Table.applyMacro("YM_px = YM/lcf");}
+		if (indexOf(chosenAnalysesString,"BX\(px\)")>=0) {Table.applyMacro("BX_px = round(BX/lcf)");}
+		if (indexOf(chosenAnalysesString,"BY\(px\)")>=0) {Table.applyMacro("BY_px = round(BY/lcf)");}
+		if (indexOf(chosenAnalysesString,"Bounding_Rect_W\(px\)")>=0) {Table.applyMacro("BoxW_px = round(Width/lcf)");}
+		if (indexOf(chosenAnalysesString,"Bounding_Rect_H\(px\)")>=0) {Table.applyMacro("BoxH_px = round(Height/lcf)");}
 		Table.deleteColumn("lcf");
 	}
 	Table.update;
-	if((roiManager("count")==nTable) && outputResult[indexOfArray(analyses,"ROI_name",false)]) {
+	if((roiManager("count")==nTable) && indexOf(chosenAnalysesString,"ROI_name")>=0) {
 		for (i=0; i<nTable; i++) {
 			roiName = call("ij.plugin.frame.RoiManager.getName", i);
 			Table.set("ROI_name", i, roiName);
 		}
 		roiManager("deselect");
 	}
-	if((roiManager("count")==nTable) && nImages>0 && outputResult[indexOfArray(analyses,"Feret_Coords",false)]) {
+	if((roiManager("count")==nTable) && nImages>0 && indexOf(chosenAnalysesString,"Feret_Coords")>=0) {
 		for (i=0; i<nTable; i++) {
 			roiManager("select", i);
 			Roi.getFeretPoints(x,y);
@@ -327,124 +332,124 @@ macro "Add Additional Geometries to Table" {
 	}
 	selectWindow(tableTitle);
 	Table.update;
-	if (outputResult[indexOfArray(analyses,"ObjectN",false)]){
+	if (indexOf(chosenAnalysesString,"ObjectN")>=0) {
 		Table.setColumn("ObjectN",Array.slice(Array.getSequence(nTable+1),1,nTable+1));}  /* Add ObjectN+1 column for labels */
-		bSCode = "BS = minOf(Width,Height); BL = maxOf(Width,Height)";
-		Table.applyMacro(bSCode);
-		Table.update;
-		/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
-		if (outputResult[indexOfArray(analyses,"CircToEllipse_Tilt",false)]) {Table.applyMacro("Cir_to_El_Tilt = (180/PI) * acos(1/AR)");} /* The angle a circle (cylinder in 3D) would be tilted to appear as an ellipse with this AR */
-		if (outputResult[indexOfArray(analyses,"AR_Bounding_Rect",false)]) {Table.applyMacro("AR_Box = BL/BS");} /* Bounding rectangle aspect ratio */
-		if (outputResult[indexOfArray(analyses,"AR_Feret",false)]) {Table.applyMacro("AR_Feret = Feret/MinFeret");} /* adds fitted ellipse aspect ratio. */
-		if (outputResult[indexOfArray(analyses,"Roundness_Feret",false)]) {Table.applyMacro("Rnd_Feret = 4*Area/(PI * pow(Feret,2))");} /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
-		if (outputResult[indexOfArray(analyses,"Compactness_Feret",false)]) {Table.applyMacro("Compact_Feret = (sqrt(Area*4/PI))/Feret");} /* Adds Compactness, using Feret as maximum diameter */
-		if (outputResult[indexOfArray(analyses,"Elongation",false)]) {Table.applyMacro("Elongation = 1-(minOf(Height/Width, Width/Height))");} /* Elongation see https://imagej.net/Shape_Filter */
-		if (outputResult[indexOfArray(analyses,"Thinnes_Ratio",false)]) {Table.applyMacro("Thinnes_Ratio = 1/Circ_");} /* adds Thinnes ratio. */
-		if (outputResult[indexOfArray(analyses,"Sqr_Diag_A",false)]) {Table.applyMacro("Sqr_Diag_A = (sqrt(Area*2))");} /* Adds diagonal of square based on area */
-		if (outputResult[indexOfArray(analyses,"Squarity_AP",false)]) {Table.applyMacro("Squarity_AP = 1-abs(1-(16*Area/(pow(Perim_,2))))");} /* Adds Squarity_AP value, should be 1 for perfect square */
-		if (outputResult[indexOfArray(analyses,"Squarity_AF",false)]) {Table.applyMacro("Squarity_AF = 1-abs(1-(Feret/(sqrt(2*Area))))");} /* Adds Squarity_AF value, should be 1 for perfect square */
-		if (outputResult[indexOfArray(analyses,"Squarity_Ff",false)]) {Table.applyMacro("Squarity_Ff = 1-abs(1-(AR_Feret/sqrt(2)))");} /* Adds Squarity_Ff value, should be 1 for perfect square */
-		// wait(delay);
-		Table.update;
-		if (outputResult[indexOfArray(analyses,"Fiber",false)]) {
-			fiberCode = "P2 = pow(Perim_,2); Fbr_Th_Snk_Units = 1/PI*(Perim_-(sqrt(P2-4*PI*Area))); Fbr_Th_Rss1_Units = Area/((0.5*Perim_)-(2*(Area/Perim_)));"
-			+ "Fbr_Th_Rss2_Units = Area/(0.3181*Perim_+sqrt(0.033102*P2-0.41483*Area)); Fbr_L_Snk_Units = Area/Fbr_Th_Snk_Units; Fbr_L_Rss1_Units = (0.5*Perim_)-(2*(Area/Perim_));"
-			+ "Fbr_L_Rss2_Units = 0.3181*Perim_+sqrt(0.033102*P2-0.41483*Area)";
-			Table.applyMacro(fiberCode);
-			/* Fbr_Th_Snk_Units: Round end ribbon thickness from repeating up/down half-annulus - think snake or perhaps Loch Ness Monster Lee & Jablonski LTSW'94 Devils Head Resort. */
-			/* Fbr_Th_Rss1_Units: Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
-			/* Fbr_Th_Rss2_Units: Fiber width from Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */		
-		}
-		Table.update;
-		if (outputResult[indexOfArray(analyses,"Angle_0-90",false)]) {Table.applyMacro("Angle_0to90 = abs(Angle-90)");}
-		if (outputResult[indexOfArray(analyses,"FeretAngle_0-90",false)]) {Table.applyMacro("FeretAngle0to90 = abs(FeretAngle-90)");}
-		if (outputResult[indexOfArray(analyses,"Convexity",false)]){ /* Perimeter of fitted ellipse from Ramanujan's first approximation */
-			Table.applyMacro("Convexity = (PI * ((3*(Major/2 + Minor/2)) - sqrt((3*Major/2 + Minor/2)*(Major/2 + 3*Minor/2))))/Perim_");} /* Convexity using the calculated elliptical fit to obtain a convex perimeter */
-		if (outputResult[indexOfArray(analyses,"Roundness_cAR",false)]){
-			Table.applyMacro("Rndnss_cAR = Circ_ + 0.913 - (0.826261 + 0.337479 * AR-0.335455 * pow(AR,2) + 0.103642 * pow(AR,3) - 0.0155562 * pow(AR,4) + 0.00114582 * pow(AR,5) - 0.0000330834 * pow(AR,6))"); /* Circularity corrected by aspect ratio roundness: https://doi.org/10.1186/s40645-015-0078-x */
-		}
-		Table.update;
-		if (outputResult[indexOfArray(analyses,"D_Area_CircEquiv",false)]){
-			Table.applyMacro("Da_Equiv_Units = 2*(sqrt(Area/PI))");} /* Darea-equiv (AKA Heywood diameter) - remember no spaces allowed in label. */
-		if (outputResult[indexOfArray(analyses,"D_Perim_CircEquiv",false)]){
-			Table.applyMacro("Dp_Equiv_Units = Perim_/PI");} /* Adds new perimeter-equivalent Diameter column to end of results table - remember no spaces allowed in label. */
-		if (outputResult[indexOfArray(analyses,"Dsph_equiv",false)]){
-			Table.applyMacro("Dsph_Equiv_Units = exp((log(6*Area*(Feret+MinFeret)/(2*PI)))/3)");} /* Adds diameter based on a sphere - Russ page 182 but using the mean Feret diameters to calculate the volume */
-		if (outputResult[indexOfArray(analyses,"Fiber",false)]) {
-			if (outputResult[indexOfArray(analyses,"Fiber_Snake_Curl",false)])
-				{Table.applyMacro("Fbr_Snk_Crl = BL/Fbr_L_Snk_Units");} /* Adds Curl for Fiber 1 calculated and bounding length */
-			if (outputResult[indexOfArray(analyses,"Fiber_Russ1_Curl",false)])
-				{Table.applyMacro("Fbr_Rss1_Crl = BL/Fbr_L_Rss1_Units");} /* Adds Curl for Fiber Russ 1 calculated and bounding length */
-			if (outputResult[indexOfArray(analyses,"Fiber_Russ2_Curl",false)])
-				{Table.applyMacro("Fbr_Rss2_Crl = BL/Fbr_L_Rss2_Units");} /* Adds Curl for Fiber Russ 2 calculated and bounding length */
-			if (outputResult[indexOfArray(analyses,"AR_Fiber_Snake",false)])
-				{Table.applyMacro("AR_Fbr_Snk = Fbr_L_Snk_Units/Fbr_Th_Snk_Units");} /* Aspect ratio from fiber length approximation 1. */
-			if (outputResult[indexOfArray(analyses,"AR_Fiber_Russ1",false)])
-				{Table.applyMacro("AR_Fbr_Russ1 = Fbr_L_Rss1_Units/Fbr_Th_Rss1_Units");} /* Aspect ratio from fiber length approximation 2. */
-			if (outputResult[indexOfArray(analyses,"AR_Fiber_Russ2",false)]) 
-				{Table.applyMacro("AR_Fbr_Russ2 = Fbr_L_Rss2_Units/Fbr_Th_Rss2_Units");} /* aspect ratio from fiber length approximation*/
-		}
-		Table.update;
-		/* Calculates Interface Density (e.g. grain boundary density based on the interfaces between objects being shared. */
-		if (outputResult[indexOfArray(analyses,"Interfacial_Density",false)]){
-			Table.applyMacro("IntfcD = Perim_/(2*Area)"); /* Adds new IntD column to end of results table - remember no spaces allowed in label. */
-			tableColumnRenameOrReplace("IntfcD","Intfc_D" + "\(" + unit + supminus + supone + "\)");
-			// GL = d2s(G,4); /* Reduce Decimal places for labeling. */
-		}
-		Table.update;
-		if (outputResult[indexOfArray(analyses,"Extent",false)]){
-			Table.applyMacro("Extent = Area/(BL * BS)");} /* adds Extent ratio, which is the object area/bounding rectangle area */
-		if (outputResult[indexOfArray(analyses,"Hex",false)] || outputResult[indexOfArray(analyses,"Hxg",false)]){
-			Table.applyMacro("Ps2A = P2/Area");
-			Table.applyMacro("HSFideal = 8 * sqrt(3)");} /* Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x */
-		if (outputResult[indexOfArray(analyses,"Hxgn_Side",false)]){
-			Table.applyMacro("Hxgn_Side_Units = sqrt((2*Area)/(3*sqrt(3)))"); /* adds the length of each hexagonal side */
-		if (outputResult[indexOfArray(analyses,"Hxgn_Perim",false)]){
+	bSCode = "BS = minOf(Width,Height); BL = maxOf(Width,Height)";
+	Table.applyMacro(bSCode);
+	Table.update;
+	/* Note that the AR reported by ImageJ is the ratio of the fitted ellipse major and minor axes. */
+	if (indexOf(chosenAnalysesString,"CircToEllipse_Tilt")>=0) {Table.applyMacro("Cir_to_El_Tilt = (180/PI) * acos(1/AR)");} /* The angle a circle (cylinder in 3D) would be tilted to appear as an ellipse with this AR */
+	if (indexOf(chosenAnalysesString,"AR_Bounding_Rect")>=0) {Table.applyMacro("AR_Box = BL/BS");} /* Bounding rectangle aspect ratio */
+	if (indexOf(chosenAnalysesString,"AR_Feret")>=0) {Table.applyMacro("AR_Feret = Feret/MinFeret");} /* adds fitted ellipse aspect ratio. */
+	if (indexOf(chosenAnalysesString,"Roundness_Feret")>=0) {Table.applyMacro("Rnd_Feret = 4*Area/(PI * pow(Feret,2))");} /* Adds Roundness, using Feret as maximum diameter (IJ Analyze uses ellipse major axis */
+	if (indexOf(chosenAnalysesString,"Compactness_Feret")>=0) {Table.applyMacro("Compact_Feret = (sqrt(Area*4/PI))/Feret");} /* Adds Compactness, using Feret as maximum diameter */
+	if (indexOf(chosenAnalysesString,"Elongation")>=0) {Table.applyMacro("Elongation = 1-(minOf(Height/Width, Width/Height))");} /* Elongation see https://imagej.net/Shape_Filter */
+	if (indexOf(chosenAnalysesString,"Thinnes_Ratio")>=0) {Table.applyMacro("Thinnes_Ratio = 1/Circ_");} /* adds Thinnes ratio. */
+	if (indexOf(chosenAnalysesString,"Sqr_Diag_A")>=0) {Table.applyMacro("Sqr_Diag_A = (sqrt(Area*2))");} /* Adds diagonal of square based on area */
+	if (indexOf(chosenAnalysesString,"Squarity_AP")>=0) {Table.applyMacro("Squarity_AP = 1-abs(1-(16*Area/(pow(Perim_,2))))");} /* Adds Squarity_AP value, should be 1 for perfect square */
+	if (indexOf(chosenAnalysesString,"Squarity_AF")>=0) {Table.applyMacro("Squarity_AF = 1-abs(1-(Feret/(sqrt(2*Area))))");} /* Adds Squarity_AF value, should be 1 for perfect square */
+	if (indexOf(chosenAnalysesString,"Squarity_Ff")>=0) {Table.applyMacro("Squarity_Ff = 1-abs(1-(AR_Feret/sqrt(2)))");} /* Adds Squarity_Ff value, should be 1 for perfect square */
+	// wait(delay);
+	Table.update;
+	if (indexOf(chosenAnalysesString,"Fiber")>=0) {
+		fiberCode = "P2 = pow(Perim_,2); Fbr_Th_Snk_Units = 1/PI*(Perim_-(sqrt(P2-4*PI*Area))); Fbr_Th_Rss1_Units = Area/((0.5*Perim_)-(2*(Area/Perim_)));"
+		+ "Fbr_Th_Rss2_Units = Area/(0.3181*Perim_+sqrt(0.033102*P2-0.41483*Area)); Fbr_L_Snk_Units = Area/Fbr_Th_Snk_Units; Fbr_L_Rss1_Units = (0.5*Perim_)-(2*(Area/Perim_));"
+		+ "Fbr_L_Rss2_Units = 0.3181*Perim_+sqrt(0.033102*P2-0.41483*Area)";
+		Table.applyMacro(fiberCode);
+		/* Fbr_Th_Snk_Units: Round end ribbon thickness from repeating up/down half-annulus - think snake or perhaps Loch Ness Monster Lee & Jablonski LTSW'94 Devils Head Resort. */
+		/* Fbr_Th_Rss1_Units: Fiber width from fiber length from John C. Russ Computer Assisted Microscopy page 189. */
+		/* Fbr_Th_Rss2_Units: Fiber width from Fiber Length from John C. Russ Computer Assisted Microscopy page 189. */		
+	}
+	Table.update;
+	if (indexOf(chosenAnalysesString,"Angle_0-90")>=0) {Table.applyMacro("Angle_0to90 = abs(Angle-90)");}
+	if (indexOf(chosenAnalysesString,"FeretAngle_0-90")>=0) {Table.applyMacro("FeretAngle0to90 = abs(FeretAngle-90)");}
+	if (indexOf(chosenAnalysesString,"Convexity")>=0) { /* Perimeter of fitted ellipse from Ramanujan's first approximation */
+		Table.applyMacro("Convexity = (PI * ((3*(Major/2 + Minor/2)) - sqrt((3*Major/2 + Minor/2)*(Major/2 + 3*Minor/2))))/Perim_");} /* Convexity using the calculated elliptical fit to obtain a convex perimeter */
+	if (indexOf(chosenAnalysesString,"Roundness_cAR")>=0) {
+		Table.applyMacro("Rndnss_cAR = Circ_ + 0.913 - (0.826261 + 0.337479 * AR-0.335455 * pow(AR,2) + 0.103642 * pow(AR,3) - 0.0155562 * pow(AR,4) + 0.00114582 * pow(AR,5) - 0.0000330834 * pow(AR,6))"); /* Circularity corrected by aspect ratio roundness: https://doi.org/10.1186/s40645-015-0078-x */
+	}
+	Table.update;
+	if (indexOf(chosenAnalysesString,"D_Area_CircEquiv")>=0) {
+		Table.applyMacro("Da_Equiv_Units = 2*(sqrt(Area/PI))");} /* Darea-equiv (AKA Heywood diameter) - remember no spaces allowed in label. */
+	if (indexOf(chosenAnalysesString,"D_Perim_CircEquiv")>=0) {
+		Table.applyMacro("Dp_Equiv_Units = Perim_/PI");} /* Adds new perimeter-equivalent Diameter column to end of results table - remember no spaces allowed in label. */
+	if (indexOf(chosenAnalysesString,"Dsph_equiv")>=0) {
+		Table.applyMacro("Dsph_Equiv_Units = exp((log(6*Area*(Feret+MinFeret)/(2*PI)))/3)");} /* Adds diameter based on a sphere - Russ page 182 but using the mean Feret diameters to calculate the volume */
+	if (indexOf(chosenAnalysesString,"Fiber")>=0) {
+		if (indexOf(chosenAnalysesString,"Fiber_Snake_Curl")>=0)
+			{Table.applyMacro("Fbr_Snk_Crl = BL/Fbr_L_Snk_Units");} /* Adds Curl for Fiber 1 calculated and bounding length */
+		if (indexOf(chosenAnalysesString,"Fiber_Russ1_Curl")>=0)
+			{Table.applyMacro("Fbr_Rss1_Crl = BL/Fbr_L_Rss1_Units");} /* Adds Curl for Fiber Russ 1 calculated and bounding length */
+		if (indexOf(chosenAnalysesString,"Fiber_Russ2_Curl")>=0)
+			{Table.applyMacro("Fbr_Rss2_Crl = BL/Fbr_L_Rss2_Units");} /* Adds Curl for Fiber Russ 2 calculated and bounding length */
+		if (indexOf(chosenAnalysesString,"AR_Fiber_Snake")>=0)
+			{Table.applyMacro("AR_Fbr_Snk = Fbr_L_Snk_Units/Fbr_Th_Snk_Units");} /* Aspect ratio from fiber length approximation 1. */
+		if (indexOf(chosenAnalysesString,"AR_Fiber_Russ1")>=0)
+			{Table.applyMacro("AR_Fbr_Russ1 = Fbr_L_Rss1_Units/Fbr_Th_Rss1_Units");} /* Aspect ratio from fiber length approximation 2. */
+		if (indexOf(chosenAnalysesString,"AR_Fiber_Russ2")>=0) 
+			{Table.applyMacro("AR_Fbr_Russ2 = Fbr_L_Rss2_Units/Fbr_Th_Rss2_Units");} /* aspect ratio from fiber length approximation*/
+	}
+	Table.update;
+	/* Calculates Interface Density (e.g. grain boundary density based on the interfaces between objects being shared. */
+	if (indexOf(chosenAnalysesString,"Interfacial_Density")>=0) {
+		Table.applyMacro("IntfcD = Perim_/(2*Area)"); /* Adds new IntD column to end of results table - remember no spaces allowed in label. */
+		tableColumnRenameOrReplace("IntfcD","Intfc_D" + "\(" + unit + supminus + supone + "\)");
+		// GL = d2s(G,4); /* Reduce Decimal places for labeling. */
+	}
+	Table.update;
+	if (indexOf(chosenAnalysesString,"Extent")>=0) {
+		Table.applyMacro("Extent = Area/(BL * BS)");} /* adds Extent ratio, which is the object area/bounding rectangle area */
+	if (indexOf(chosenAnalysesString,"Hex")>=0 || indexOf(chosenAnalysesString,"Hxg")>=0) {
+		Table.applyMacro("Ps2A = P2/Area");
+		Table.applyMacro("HSFideal = 8 * sqrt(3)"); /* Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x */
+		if (indexOf(chosenAnalysesString,"Hxgn_Side")>=0) {
+			Table.applyMacro("Hxgn_Side_Units = sqrt((2*Area)/(3*sqrt(3)))");} /* adds the length of each hexagonal side */
+		if (indexOf(chosenAnalysesString,"Hxgn_Perim")>=0) {
 			Table.applyMacro("Hxgn_Perim_Units = 6 * Hxgn_Side_Units");} /* adds total perimeter of hexagon */
-		if (outputResult[indexOfArray(analyses,"Hxgn_Shape_Factor",false)])
+		if (indexOf(chosenAnalysesString,"Hxgn_Shape_Factor")>=0)
 			{Table.applyMacro("HSF = abs(Ps2A-HSFideal)");} /* Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 */
-		if (outputResult[indexOfArray(analyses,"Hxgn_Shape_Factor_R",false)])
+		if (indexOf(chosenAnalysesString,"Hxgn_Shape_Factor_R")>=0)
 			{Table.applyMacro("HSFR = abs(HSFideal/Ps2A)");} /* Hexagonal Shape Factor as ratio to the ideal HSF, the value for a perfect hexagon is 1 */
-		if (outputResult[indexOfArray(analyses,"Hexagonality",false)])
+		if (indexOf(chosenAnalysesString,"Hexagonality")>=0)
 			{Table.applyMacro("Hexagonality = 6*Hxgn_Side_Units/Perim_");} /* adds a term to indicate accuracy of hexagon approximation */
 		Table.update;
 		Table.deleteColumn("Ps2A");
 		Table.update;
 		Table.deleteColumn("HSFideal");
 		Table.update;
-		if (outputResult[indexOfArray(analyses,"Vol_Pointed_Spheroid",false)]){
-			Table.applyMacro("VolPtdSphr = (PI/6) * Feret * pow(MinFeret,2)"); /* adds prolate ellipsoid (an American football) volume: Hilliard 1968, Russ p. 189 */
-			tableColumnRenameOrReplace("VolPtdSphr","Vol_PtdSphr" + "\(" + unit + supthree + "\)");
-		}
-		if (outputResult[indexOfArray(analyses,"Vol_Discus_Spheroid",false)]){
-			Table.applyMacro("VolDiscus = (PI/6) * MinFeret * pow(Feret,2)"); /* adds oblate ellipsoid (a discus) volume: Hilliard 1968, Russ p. 189 */
-			tableColumnRenameOrReplace("VolDiscus","Vol_Discus" + "\(" + unit + supthree + "\)");
-		}
-		tableDeleteColumn("P2");
-		tableDeleteColumn("BS");
-		tableDeleteColumn("BL");
-		finalColumns = split(Table.headings);
-		for (i=0; i<finalColumns.length; i++){
-			cN = finalColumns[i];
-			if (indexOf(cN,"_px")>0) tableColumnRenameOrReplace(cN,replace(cN,"_px","\(px\)"));
-			if (indexOf(cN,"_Units")>0) tableColumnRenameOrReplace(cN,replace(cN,"_Units",unitLabel));
-			if (indexOf(cN,"_0to90")>0) tableColumnRenameOrReplace(cN,replace(cN,"0to90","0-90" + degreeSym));
-		}
-		if (infinityCount>0){
-			for (i=0; i<columnsL; i++){
-				for (j=0; j<nTable; j++){
-					if(Table.get(tableColumns[i],j)==infinitySym){
-						Table.set(tableColumns[i],j,"-Infinity");
-						infinityCount -=1;
-						if (infinityCount==0){
-							j=nTable; i=columnsL;
-						}
+	}
+	if (indexOf(chosenAnalysesString,"Vol_Pointed_Spheroid")>=0) {
+		Table.applyMacro("VolPtdSphr = (PI/6) * Feret * pow(MinFeret,2)"); /* adds prolate ellipsoid (an American football) volume: Hilliard 1968, Russ p. 189 */
+		tableColumnRenameOrReplace("VolPtdSphr","Vol_PtdSphr" + "\(" + unit + supthree + "\)");
+	}
+	if (indexOf(chosenAnalysesString,"Vol_Discus_Spheroid")>=0) {
+		Table.applyMacro("VolDiscus = (PI/6) * MinFeret * pow(Feret,2)"); /* adds oblate ellipsoid (a discus) volume: Hilliard 1968, Russ p. 189 */
+		tableColumnRenameOrReplace("VolDiscus","Vol_Discus" + "\(" + unit + supthree + "\)");
+	}
+	tableDeleteColumn("P2");
+	tableDeleteColumn("BS");
+	tableDeleteColumn("BL");
+	finalColumns = split(Table.headings);
+	for (i=0; i<finalColumns.length; i++){
+		cN = finalColumns[i];
+		if (indexOf(cN,"_px")>0) tableColumnRenameOrReplace(cN,replace(cN,"_px","\(px\)"));
+		if (indexOf(cN,"_Units")>0) tableColumnRenameOrReplace(cN,replace(cN,"_Units",unitLabel));
+		if (indexOf(cN,"_0to90")>0) tableColumnRenameOrReplace(cN,replace(cN,"0to90","0-90" + degreeSym));
+	}
+	if (infinityCount>0){
+		for (i=0; i<columnsL; i++){
+			for (j=0; j<nTable; j++){
+				if(Table.get(tableColumns[i],j)==infinitySym){
+					Table.set(tableColumns[i],j,"-Infinity");
+					infinityCount -=1;
+					if (infinityCount==0){
+						j=nTable; i=columnsL;
 					}
 				}
 			}
 		}
-		Table.update;
 	}
+	Table.update;
 	setBatchMode("exit & display"); /* exit batch mode */
 	showStatus("Additional Geometries Macro Finished for: " + nTable + " Objects");
 	Table.rename(tableTitle,"Results"); /* column headers export not supported for tables otherwise  :-( */
@@ -456,13 +461,12 @@ macro "Add Additional Geometries to Table" {
 	/*
 	( 8(|)  ( 8(|)  All ASC Functions    @@@@@:-)  @@@@@:-)
 	*/
-	function arrayToString(array,delimiters){
+	function arrayToString(array,delimiter){
 		/* 1st version April 2019 PJL
-			v190722 Modified to handle zero length array */
-		string = "";
+			v220307 += restored for else line*/
 		for (i=0; i<array.length; i++){
-			if (i==0) string += array[0];
-			else  string = string + delimiters + array[i];
+			if (i==0) string = "" + array[0];
+			else  string += delimiter + array[i];
 		}
 		return string;
 	}
