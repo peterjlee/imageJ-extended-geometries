@@ -25,10 +25,11 @@
 	v201130 Corrected TableGet row request for row zero. v201204 Various tweaks to try and debug issue with unit and file name not being output to table.
 	v210825-7 Does not offer to delete "same value" columns if there is only 1 row. Replaces "-Infinity" entries (incompatible with macro table functions) with symbol and restores entries afterwards
 	v211027 Uses selectResultsWindow function
-	v220307-8 Reworked saved preferences to be more robust. Added "blank" column option. 
+	v220307-8 Reworked saved preferences to be more robust. Added "blank" column option.
+	v220407 Improved html help. v220407b Shows values for potentially deletable columns (where all the values are the same).
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v220308"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v220407b"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
@@ -114,17 +115,17 @@ macro "Add Additional Geometries to Table" {
 	
 	 html = "<html>"
 	 +"<font color=blue size=+1>Additional Aspect Ratios:</font><br />"
-	 +"<font color=green> \"AR Bounding Rect\"</font>: Aspect ratio from bounding rectangle.<br />"
-	 +"<font color=green> \"AR Feret\"</font>: Aspect ratio Feret diameters\( max\/min\).<br />"
+	 +"<font color=green> &quot;AR Bounding Rect&quot;</font>: Aspect ratio from bounding rectangle.<br />"
+	 +"<font color=green> &quot;AR Feret&quot;</font>: Aspect ratio Feret diameters\( max\/min\).<br />"
 	 +"<font color=blue size=+1>Additional Feret Diameter derived geometries:</font><br />"
-		+"<font color=green> \"Feret Coordinates\"</font>: Coordinates for both min and max Feret diameters.<br />"
-		+"<font color=green>\"Compactness_Feret\"</font> (using Feret diameter as maximum diameter),<br />"
-		+"<font color=green>0-90"+sqroot+" resolved angles:</font> for \"Angle\" and \"Feret Angle\"<br />"
+		+"<font color=green> &quot;Feret Coordinates&quot;</font>: Coordinates for both min and max Feret diameters.<br />"
+		+"<font color=green>&quot;Compactness_Feret&quot;</font> (using Feret diameter as maximum diameter),<br />"
+		+"<font color=green>0-90&radic; resolved angles:</font> for &quot;Angle&quot; and &quot;Feret Angle&quot;<br />"
      +"<font color=blue size=+1>Interfacial density</font> (assuming each interface is shared by two objects - e.g. grain boundary density).<br />"
 	 +"<font color=blue size=+1>CircToEllipse Tilt:</font> Angle that a circle would have to be tilted to match measured ellipse.<br />"
 	 +"<font color=blue size=+1>Pixel coordinates:</font> Coordinates and bounding box values converted to pixels.<br />"
      +"<font color=blue size=+1>Area equivalent diameter</font>\(AKA Heywood diameter\):<br />"
-	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The \"diameter\" of an object obtained from the area assuming a circular geometry.<br />"
+	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The &quot;diameter&quot; of an object obtained from the area assuming a circular geometry.<br />"
 	 +"<font color=blue size=+1>Perimeter equivalent diameter</font>: Calculated from the perimeter  assuming a circular geometry.<br />"
 	 +"<font color=blue size=+1>Spherical equivalent diameter</font>: Calculated from the volume of a sphere (Russ page 182)<br />"
 	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; but using the mean projected Feret diameters to calculate the volume.<br />"
@@ -135,28 +136,28 @@ macro "Add Additional Geometries to Table" {
 	 +"<font color=blue size=+1>Fiber lengths</font> from Russ formulae.<br />"
 	 +"<font color=blue size=+1>Volumetric estimates from projections</font> obtained from the formulae in [1] 189.<br />"
 	 +"<font color=blue size=+1>Additional shape factors</font>:<br />"
-	 +"<font color=green>\"Convexity\"</font>: using the calculated elliptical fit to obtain a convex perimeter, https://imagej.net/Shape_Filter<br />"
-	 +"<font color=green>\"Elongation\"</font> = 1 - 1/Bounding Rectangle Aspect Ratio see https://imagej.net/Shape_Filter<br />"
-	 +"<font color=green>\"Roundnesss_cAR\"</font> Circularity corrected by aspect ratio,<br />"
+	 +"<font color=green>&quot;Convexity&quot;</font>: using the calculated elliptical fit to obtain a convex perimeter, https://imagej.net/Shape_Filter<br />"
+	 +"<font color=green>&quot;Elongation&quot;</font> = 1 - 1/Bounding Rectangle Aspect Ratio see https://imagej.net/Shape_Filter<br />"
+	 +"<font color=green>&quot;Roundnesss_cAR&quot;</font> Circularity corrected by aspect ratio,<br />"
 	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Takashimizu and Iiyoshi Progress in Earth and Planetary Science (2016) 3:2<br />"
 	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; https://doi.org/10.1186/s40645-015-0078-x<br />"
-	 +"<font color=green> \"Thinnes ratio\"</font> inverse of circularity see https://imagej.net/Shape_Filter<br />"
-	 +"<font color=green> \"Extent ratio\"</font> object area/bounding rectangle area */,<br />"
-	 +"<font color=green> \"Curl\"</font> Fiber length/length of bounding box<br />"
+	 +"<font color=green> &quot;Thinnes ratio&quot;</font> inverse of circularity see https://imagej.net/Shape_Filter<br />"
+	 +"<font color=green> &quot;Extent ratio&quot;</font> object area/bounding rectangle area<br />"
+	 +"<font color=green> &quot;Curl&quot;</font> Fiber length/length of bounding box, i.e. how much the fiber is &quot;curled-up&quot;<br />"
 	 +"<font color=blue size=+1>Square geometries</font> relevant to diamond indent hardness measurement:<br />"
-	 +"<font color=green>Sqr_Diag_A</font> = "+sqroot+"\(2*Area\) </font> for a square with vertical diagonal this length should match the bounding box height<br />"
+	 +"<font color=green>Sqr_Diag_A</font> = &radic;\(2*Area\) </font> for a square with vertical diagonal this length should match the bounding box height<br />"
 	 +"<font color=green>Squarity:</font> for a perfect square these values should approach 1:<br />"
-	 +"<font color=green>&nbsp;Squarity_AP</font> =  1-|1-\(16*Area\)/Perimeter"+suptwo+"| </font> \(perhaps too sensitive to perimeter roughness\)<br />"
-	 +"<font color=green>&nbsp;Squarity_AF</font> =  1-|1-Feret/\(A*"+sqroot+"2\)| </font> <br />"
-	 +"<font color=green>&nbsp;Squarity_Ff</font> =  1-|1-"+sqroot+"2/Feret_AR| </font><br />"
+	 +"<font color=green>&nbsp;Squarity_AP</font> =  1-|1-\(16*Area\)/Perimeter&#xb2| </font> \(perhaps too sensitive to perimeter roughness\)<br />"
+	 +"<font color=green>&nbsp;Squarity_AF</font> =  1-|1-Feret/\(A*&radic;2\)| </font> <br />"
+	 +"<font color=green>&nbsp;Squarity_Ff</font> =  1-|1-&radic;2/Feret_AR| </font><br />"
 	 +"<font color=blue size=+1>Hexagonal geometries</font> more appropriate to close-packed structures than ellipses:<br />"
 	 +"<font color=green>HexPerimeter</font> = 6 * HxgnSide<br />"
-	 +"<font color=green>HxgnSide</font> ="+sqroot+"\(\(2*Area\)/\(3*"+sqroot+"3\)\)<br />"
+	 +"<font color=green>HxgnSide</font> =&radic;\(\(2*Area\)/\(3*&radic;3\)\)<br />"
 	 +"<font color=green>HexPerimeter</font> = 6 * HxgnSide<br />"
-	 +"<font color=green>Hexagonal Shape Factor</font> \"HSF\" = |\(P"+suptwo+"\/Area-13.856\)| <br />"
+	 +"<font color=green>Hexagonal Shape Factor</font> &quot;HSF&quot; = |\(P&#xb2\/Area-13.856\)| <br />"
 	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hexagonal Shape Factor from Behndig et al. https://iovs.arvojournals.org/article.aspx?articleid=2122939 <br />"
 	 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; and Collin and Grabsch (1982) https://doi.org/10.1111/j.1755-3768.1982.tb05785.x <br />"
-	 +"<font color=green>Hexagonal Shape Factor Ratio</font> \"HSFR\" = |\(13.856/\(P"+suptwo+"\/Area\)\)|    <br /> as above but expressed as a ratio like circularity, with 1 being an ideal hexagon.<br />"
+	 +"<font color=green>Hexagonal Shape Factor Ratio</font> &quot;HSFR&quot; = |\(13.856/\(P&#xb2\/Area\)\)|    <br /> as above but expressed as a ratio like circularity, with 1 being an ideal hexagon.<br />"
 	 +"<font color=green>HexPerimeter</font> = 6 * HxgnSide</font><br />"
 	 +"<font color=green>Hexagonality</font> = 6 * HxgnSide/Perimeter</font><br />"
 	 +"<font color=blue>Full Feret coordinate listing</font> using new Roi.getFeretPoints macro function added in ImageJ 1.52m.<br />"
@@ -219,6 +220,23 @@ macro "Add Additional Geometries to Table" {
 	}
 	checkboxGroupColumns = 5;
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
+	/* Check for information-poor columns */
+	intColsAll = newArray("Mean","StdDev","Mode","Min","Max","IntDen","Median","Skew","Kurt","%Area","RawIntDen");
+	intColsAllN = intColsAll.length;
+	intCols = newArray();
+	intColsVals = newArray();
+	for(i=0;i<intColsAllN;i++) {
+		if (indexOf("\t"+tableHeadings,"\t"+intColsAll[i]+"\t")>-1) {
+			vals = Table.getColumn(intColsAll[i]);
+			Array.getStatistics(vals, min, max, nul, nul); 
+			if(min==max){
+				intCols = Array.concat(intCols,intColsAll[i]);
+				intColsVals = Array.concat(intColsVals,intColsAll[i] + "\(" + min + "\)");
+			}
+		}
+	}
+	intColsN = intCols.length;
+	if (intColsN>0) intColsText = arrayToString(intColsVals,", ");
 	Dialog.create("Select Extended Geometrical Analyses: " + lMacro);
 		Dialog.setInsets(-5, 20, 0);
 		Dialog.addMessage("Image file name: " + fullFName);
@@ -242,10 +260,10 @@ macro "Add Additional Geometries to Table" {
 		Dialog.addCheckboxGroup(checkboxGroupRows,checkboxGroupColumns,analyses,chosenResultCheck);
 		Dialog.addRadioButtonGroup("Override above selections with:",newArray("No","Select All","Default Analyses"),1,3,"No");
 		Dialog.addRadioButtonGroup("Set preferences for next run:", newArray("Use Current Selection", "Select All","Select None","Default Analyses"),1,5,"Use Current Selection");
-		if (nTable>1){
+		if (nTable>1 && intColsN>0){
 			Dialog.setInsets(20, 20, 0); /* (top, left, bottom) */
-			Dialog.addMessage("The following option removes certain columns but ONLY if all the values in the column are identical");
-			Dialog.addCheckbox("Discard: Mean, StdDev, Mode, Min, Max, IntDen, Median, Skew, Kurt, %Area, RawIntDen", true);
+			Dialog.addMessage("The following option removes certain columns but ONLY if all the values \(''\) in the column are identical");
+			Dialog.addCheckbox("Discard: " + intColsText, false);
 		}
 		Dialog.addHelp(html);
 	Dialog.show();
@@ -259,23 +277,19 @@ macro "Add Additional Geometries to Table" {
 		if (overrideSelection=="Select All") chosenAnalyses = analyses;  /* Select All */
 		else if (overrideSelection=="Default Analyses") chosenAnalyses = defaultAnalyses;  /* Select defaults */
 		nextRunSettings = Dialog.getRadioButton();
-		if (nTable>1) columnCleanup = Dialog.getCheckbox();
+		if (nTable>1 && intColsN>0) columnCleanup = Dialog.getCheckbox();
 		else columnCleanup = false;
 	selectWindow(tableTitle);
 	setBatchMode(true); /* batch mode on*/
 	if (columnCleanup){
-		intCols = newArray("Mean","StdDev","Mode","Min","Max","IntDen","Median","Skew","Kurt","%Area","RawIntDen");
-		for(i=0;i<intCols.length;i++) {
-			if (indexOf("\t"+tableHeadings,"\t"+intCols[i]+"\t")>-1) {
-				vals = Table.getColumn(intCols[i]);
-				Array.getStatistics(vals, min, max, nul, nul); 
-				if(min==max){
-					Table.deleteColumn(intCols[i]);
-					Table.update;
-					print("Column " + intCols[i] + " contained a single value \(" + min + "\) and was deleted");
-				}
-			}
+		for(i=0;i<intColsN;i++) {
+			Table.deleteColumn(intCols[i]);
+			wait(30);
+			Table.update;
+			wait(30);
 		}
+		if (intColsN>1) print("Columns " + intColsText + " contained a single value \(''\) and were deleted");
+		else print("Column " + intColsText + " contained a single value \(''\) and was deleted");
 	}
 	analysesSelectedKey = prefsNameKey + "AnalysesSelected";
 	if (lengthOf(chosenAnalyses)<1) restoreExit("No analyses chosen");
@@ -307,6 +321,7 @@ macro "Add Additional Geometries to Table" {
 		if (indexOf(chosenAnalysesString,"Bounding_Rect_H\(px\)")>=0) {Table.applyMacro("BoxH_px = round(Height/lcf)");}
 		Table.deleteColumn("lcf");
 	}
+	wait(10);
 	Table.update;
 	if((roiManager("count")==nTable) && indexOf(chosenAnalysesString,"ROI_name")>=0) {
 		for (i=0; i<nTable; i++) {
@@ -450,8 +465,10 @@ macro "Add Additional Geometries to Table" {
 		}
 	}
 	Table.update;
+	tableHeadings = Table.headings;
+	tableColumns = split(Table.headings);
 	setBatchMode("exit & display"); /* exit batch mode */
-	showStatus("Additional Geometries Macro Finished for: " + nTable + " Objects");
+	showStatus("Additional Geometries Macro Finished for: " + nTable + " Objects, " + lengthOf(tableColumns) + " columns");
 	Table.rename(tableTitle,"Results"); /* column headers export not supported for tables otherwise  :-( */
 	beep(); wait(300); beep(); wait(300); beep();
 	restoreSettings;
