@@ -27,7 +27,7 @@ Simple macro to illustrate how historically common descriptions such as area equ
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hexagonality = 6 * HexSide/Perimeter <br />
   &nbsp;&nbsp;&nbsp;Full Feret coordinate listing using new Roi.getFeretPoints macro function added in ImageJ 1.52m.<br />
   &nbsp;&nbsp;&nbsp;Preferences are automatically saved and retrieved from the IJ_prefs file so that favorite geometries can be retained. Help button provides more information on each measurement.</p>
-  <p><img src="/images/ASC_Extended_Geometries_Menu_v220308_721x612_PAL.png" alt="ASC_Extended Geometries Menu"  height="420" /> </p><sub><sup>
+  <p><img src="/images/ASC_Extended_Geometries_Menu_v220407b_PAL32_721x594.png" alt="ASC_Extended Geometries Menu"  height="500" /> </p><sub><sup>
  <strong>Legal Notice:</strong> <br />
 These macros have been developed to demonstrate the power of the ImageJ macro language and we assume no responsibility whatsoever for its use by other parties, and make no guarantees, expressed or implied, about its quality, reliability, or any other characteristic. On the other hand we hope you do have fun with them without causing harm.
 <br />
