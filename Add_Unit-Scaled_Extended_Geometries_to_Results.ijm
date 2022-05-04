@@ -27,15 +27,24 @@
 	v211027 Uses selectResultsWindow function
 	v220307-8 Reworked saved preferences to be more robust. Added "blank" column option.
 	v220407 Improved html help. v220407b Shows values for potentially deletable columns (where all the values are the same).
+	v220503 Kludge for table naming issue.
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v220407b"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v220503"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
 	selectResultsWindow();
 	tableTitle = Table.title;
 	nTable = Table.size;
+	if (isOpen(tableTitle)) selectWindow(tableTitle);
+	else if (isOpen("Results")){
+		selectWindow("Results");
+		tableTitle = Table.title;
+		nTable = Table.size;
+	}
+	else exit("No Results table to work with");
+	Table.rename(tableTitle, tableTitle); /* Weird kludge for weird residual table name issue */
 	if (nTable==0) exit("No Table to work with");
 	tableHeadings = Table.headings;
 	tableColumns = split(tableHeadings);
@@ -71,6 +80,8 @@ macro "Add Additional Geometries to Table" {
 	else {
 		selectResultsWindow();
 		tableTitle = Table.title;
+		nTable = Table.size;
+		print("Added additional geometric parameters to: " + tableTitle + " " + nTable);
 	}
 	/* Check table for embedded scale */
 	tableScale = false;
@@ -240,6 +251,8 @@ macro "Add Additional Geometries to Table" {
 	Dialog.create("Select Extended Geometrical Analyses: " + lMacro);
 		Dialog.setInsets(-5, 20, 0);
 		Dialog.addMessage("Image file name: " + fullFName);
+		Dialog.setInsets(-5, 20, 0);
+		Dialog.addMessage("Results table name: \"" + tableTitle + "\", with " + nTable + " row\(s\)");
 		if (tableScale){
 			getPixelSize(iUnit, iPixelWidth, iPixelHeight);
 			Dialog.setInsets(-5, 20, 0);
