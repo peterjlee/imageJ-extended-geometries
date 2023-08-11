@@ -28,13 +28,16 @@
 	v220307-8 Reworked saved preferences to be more robust. Added "blank" column option.
 	v220407 Improved html help. v220407b Shows values for potentially deletable columns (where all the values are the same).
 	v220503 Kludge for table naming issue.
+	v220715 Information poor columns also include NaN columns. Checks for concentric objects.
+	v230109 Minor update to make labeling of 0-90 degree range more consistent.
+	v230804 Adds option to ignore histograms to selectResultsWindow function.
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v220503"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v230804.ijm"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
-	selectResultsWindow();
+	selectResultsWindow(true);
 	tableTitle = Table.title;
 	nTable = Table.size;
 	if (isOpen(tableTitle)) selectWindow(tableTitle);
@@ -78,7 +81,7 @@ macro "Add Additional Geometries to Table" {
 	prefsDelimiter = "|";
 	if (isOpen(tableTitle)) selectWindow(tableTitle);
 	else {
-		selectResultsWindow();
+		selectResultsWindow(true);
 		tableTitle = Table.title;
 		nTable = Table.size;
 		print("Added additional geometric parameters to: " + tableTitle + " " + nTable);
@@ -186,6 +189,20 @@ macro "Add Additional Geometries to Table" {
 		}
 	}
 	if (missing > 0) restoreExit("" + missing + " required columns " + resultsMissing + " are missing");
+	/* Check for co-centric objects (should find twice-analyzed) */
+	XMs = Table.getColumn("XM");
+	YMs = Table.getColumn("YM");
+	XMsRank = Array.rankPositions(XMs);
+	concentrics = newArray(); 
+	for (i=1; i<nTable-1; i++) {
+		if((XMs[XMsRank[i]] == XMs[XMsRank[i+1]]) && (YMs[XMsRank[i]] == YMs[XMsRank[i+1]]))
+			concentrics = Array.concat(concentrics,XMsRank[i]);
+	}
+	lConcentrics = lengthOf(concentrics);
+	if (lConcentrics>0){
+		IJ.log("Warning: there are " + lConcentrics + " objects:");
+		Array.print(concentrics);
+	}	
 	/* The measurements are split into groups for organization purposes and then recombined for simplicity of use with Dialog.addCheckboxGroup */
 	analysesI = newArray("Image_Scale","Unit","ObjectN","ROI_name", "Image_Name"); /* Information */
 	analysesF = newArray("AR_Bounding_Rect","AR_Feret","Roundness_Feret","Compactness_Feret", "Feret_Coords");
@@ -232,7 +249,7 @@ macro "Add Additional Geometries to Table" {
 	checkboxGroupColumns = 5;
 	checkboxGroupRows = round(analyses.length/checkboxGroupColumns)+1; /* Add +1 to make sure that there are enough cells */
 	/* Check for information-poor columns */
-	intColsAll = newArray("Mean","StdDev","Mode","Min","Max","IntDen","Median","Skew","Kurt","%Area","RawIntDen");
+	intColsAll = newArray("Mean","StdDev","Mode","Min","Max","IntDen","Median","Skew","Kurt","%Area","RawIntDen","Slice");
 	intColsAllN = intColsAll.length;
 	intCols = newArray();
 	intColsVals = newArray();
@@ -240,7 +257,7 @@ macro "Add Additional Geometries to Table" {
 		if (indexOf("\t"+tableHeadings,"\t"+intColsAll[i]+"\t")>-1) {
 			vals = Table.getColumn(intColsAll[i]);
 			Array.getStatistics(vals, min, max, nul, nul); 
-			if(min==max){
+			if(min==max || (endsWith(min,"Infinity")) && endsWith(max,"Infinity")) {
 				intCols = Array.concat(intCols,intColsAll[i]);
 				intColsVals = Array.concat(intColsVals,intColsAll[i] + "\(" + min + "\)");
 			}
@@ -252,7 +269,8 @@ macro "Add Additional Geometries to Table" {
 		Dialog.setInsets(-5, 20, 0);
 		Dialog.addMessage("Image file name: " + fullFName);
 		Dialog.setInsets(-5, 20, 0);
-		Dialog.addMessage("Results table name: \"" + tableTitle + "\", with " + nTable + " row\(s\)");
+		Dialog.addMessage("Results table name: \"" + tableTitle + "\", with " + nTable + " row\(s\) and " + lConcentrics + " concentric objects");
+		// if (lConcentrics)>0) Dialog.addMessage(lContric"Results table name: \"" + tableTitle + "\", with " + nTable + " row\(s\)");
 		if (tableScale){
 			getPixelSize(iUnit, iPixelWidth, iPixelHeight);
 			Dialog.setInsets(-5, 20, 0);
@@ -390,7 +408,7 @@ macro "Add Additional Geometries to Table" {
 	}
 	Table.update;
 	if (indexOf(chosenAnalysesString,"Angle_0-90")>=0) {Table.applyMacro("Angle_0to90 = abs(Angle-90)");}
-	if (indexOf(chosenAnalysesString,"FeretAngle_0-90")>=0) {Table.applyMacro("FeretAngle0to90 = abs(FeretAngle-90)");}
+	if (indexOf(chosenAnalysesString,"FeretAngle_0-90")>=0) {Table.applyMacro("FeretAngle_0to90 = abs(FeretAngle-90)");}
 	if (indexOf(chosenAnalysesString,"Convexity")>=0) { /* Perimeter of fitted ellipse from Ramanujan's first approximation */
 		Table.applyMacro("Convexity = (PI * ((3*(Major/2 + Minor/2)) - sqrt((3*Major/2 + Minor/2)*(Major/2 + 3*Minor/2))))/Perim_");} /* Convexity using the calculated elliptical fit to obtain a convex perimeter */
 	if (indexOf(chosenAnalysesString,"Roundness_cAR")>=0) {
@@ -462,7 +480,7 @@ macro "Add Additional Geometries to Table" {
 		cN = finalColumns[i];
 		if (indexOf(cN,"_px")>0) tableColumnRenameOrReplace(cN,replace(cN,"_px","\(px\)"));
 		if (indexOf(cN,"_Units")>0) tableColumnRenameOrReplace(cN,replace(cN,"_Units",unitLabel));
-		if (indexOf(cN,"_0to90")>0) tableColumnRenameOrReplace(cN,replace(cN,"0to90","0-90" + degreeSym));
+		if (indexOf(cN,"_0to90")>0) tableColumnRenameOrReplace(cN,replace(cN,"0to90","\(0-90" + degreeSym + "\)"));
 	}
 	if (infinityCount>0){
 		for (i=0; i<columnsL; i++){
@@ -500,10 +518,11 @@ macro "Add Additional Geometries to Table" {
 		}
 		return string;
 	}
-	function getResultsTableList() {
+	function getResultsTableList(ignoreHistograms) {
 		/* simply returns array of open results tables
 		v200723: 1st version
-		v201207: Removed warning message */
+		v201207: Removed warning message
+		v230804: Adds boolean ignoreHistograms option */
 		nonImageWindows = getList("window.titles");
 		// if (nonImageWindows.length==0) exit("No potential results windows are open");
 		if (nonImageWindows.length>0){
@@ -511,7 +530,8 @@ macro "Add Additional Geometries to Table" {
 			for (i=0; i<nonImageWindows.length; i++){
 				selectWindow(nonImageWindows[i]);
 				if(getInfo("window.type")=="ResultsTable")
-				resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);    
+				if (!ignoreHistograms) resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);
+				else (indexOf(nonImageWindows[i],"Histogram")<0) resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);
 			}
 			return resultsWindows;
 		}
@@ -543,16 +563,18 @@ macro "Add Additional Geometries to Table" {
 		memFlush(200);
 		exit(message);
 	}
-	function selectResultsWindow(){
+	function selectResultsWindow(ignoreHistograms){
 		/* selects the Results window
 			v200722: 1st version
 			v200723: Uses separate getResultsTableList function
 			v211027: if only one Results window found it selects it. Requires restoreExit function
+			v230804: Adds boolean ignoreHistograms option
 			*/
-		resultsWindows = getResultsTableList();
+		functionL = "selectResultsWindow function v230804";
+		resultsWindows = getResultsTableList(ignoreHistograms);
 		if (resultsWindows.length>1){
 			resultsWindows = Array.sort(resultsWindows); /* R for Results comes before S for Summary */
-			Dialog.create("Select table for analysis: v200722");
+			Dialog.create("Select table for analysis: " + functionL);
 			Dialog.addChoice("Choose Results Table: ",resultsWindows,resultsWindows[0]);
 			Dialog.show();
 			selectWindow(Dialog.getChoice());
