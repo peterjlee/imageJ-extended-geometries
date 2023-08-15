@@ -31,9 +31,10 @@
 	v220715 Information poor columns also include NaN columns. Checks for concentric objects.
 	v230109 Minor update to make labeling of 0-90 degree range more consistent.
 	v230804 Adds option to ignore histograms to selectResultsWindow function.
+	v230815: fixed function getResultsTableList.
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v230804.ijm"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v230815.ijm"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
@@ -522,16 +523,17 @@ macro "Add Additional Geometries to Table" {
 		/* simply returns array of open results tables
 		v200723: 1st version
 		v201207: Removed warning message
-		v230804: Adds boolean ignoreHistograms option */
+		v230804: Adds boolean ignoreHistograms option
+		v230815: Restore missing  bracket		*/
 		nonImageWindows = getList("window.titles");
-		// if (nonImageWindows.length==0) exit("No potential results windows are open");
 		if (nonImageWindows.length>0){
 			resultsWindows = newArray();
 			for (i=0; i<nonImageWindows.length; i++){
 				selectWindow(nonImageWindows[i]);
-				if(getInfo("window.type")=="ResultsTable")
-				if (!ignoreHistograms) resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);
-				else (indexOf(nonImageWindows[i],"Histogram")<0) resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);
+				if (getInfo("window.type")=="ResultsTable"){
+					if (!ignoreHistograms) resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);
+					else if (indexOf(nonImageWindows[i],"Histogram")<0) resultsWindows = Array.concat(resultsWindows,nonImageWindows[i]);
+				}
 			}
 			return resultsWindows;
 		}
