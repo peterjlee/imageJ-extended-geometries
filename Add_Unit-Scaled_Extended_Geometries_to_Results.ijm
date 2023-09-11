@@ -31,10 +31,10 @@
 	v220715 Information poor columns also include NaN columns. Checks for concentric objects.
 	v230109 Minor update to make labeling of 0-90 degree range more consistent.
 	v230804 Adds option to ignore histograms to selectResultsWindow function.
-	v230815: fixed function getResultsTableList.
+	v230815: fixed function getResultsTableList.  F1: updated indexOf functions.
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v230815.ijm"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v230815-f1.ijm"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
@@ -539,16 +539,17 @@ macro "Add Additional Geometries to Table" {
 		}
 		else return "";
 	}
-	function indexOfArray(array,string,default) {
-		/* v190423 Adds "default" parameter (use -1 for backwards compatibility). Returns only first found value */
-		index = default;
+	function indexOfArray(array, value, default) {
+		/* v190423 Adds "default" parameter (use -1 for backwards compatibility). Returns only first found value
+			v230902 Limits default value to array size */
+		index = minOf(lengthOf(array) - 1, default);
 		for (i=0; i<lengthOf(array); i++){
-			if (array[i]==string) {
+			if (array[i]==value) {
 				index = i;
 				i = lengthOf(array);
 			}
 		}
-		return index;
+	  return index;
 	}
 	function memFlush(waitTime) {
 		run("Reset...", "reset=[Undo Buffer]"); 
