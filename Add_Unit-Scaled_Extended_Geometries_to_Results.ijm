@@ -32,9 +32,10 @@
 	v230109 Minor update to make labeling of 0-90 degree range more consistent.
 	v230804 Adds option to ignore histograms to selectResultsWindow function.
 	v230815: fixed function getResultsTableList.  F1: updated indexOf functions.
+	v231013: Table headers only split by tabs.
 	*/
 macro "Add Additional Geometries to Table" {
-	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v230815-f1.ijm"; /* Better to use manual label in case macro is called from startup */
+	lMacro = "Add_Unit-Scaled_Extended_Geometries_to_Results_v231013.ijm"; /* Better to use manual label in case macro is called from startup */
 	requires("1.52m"); /*Uses the new ROI.getFeretPoints released in 1.52m */
 	saveSettings();
 	fullFName = getInfo("image.filename");
@@ -52,6 +53,7 @@ macro "Add Additional Geometries to Table" {
 	if (nTable==0) exit("No Table to work with");
 	tableHeadings = Table.headings;
 	tableColumns = split(tableHeadings);
+	if (tableColumns[0]==" " || tableColumns[0]=="") tableColumns = Array.deleteIndex(tableColumns, 0);
 	columnsL = lengthOf(tableColumns);
 	infinitySym = fromCharCode(0x221E);
 	infinityCount = 0;
@@ -476,7 +478,7 @@ macro "Add Additional Geometries to Table" {
 	tableDeleteColumn("P2");
 	tableDeleteColumn("BS");
 	tableDeleteColumn("BL");
-	finalColumns = split(Table.headings);
+	finalColumns = split(Table.headings, "\t");
 	for (i=0; i<finalColumns.length; i++){
 		cN = finalColumns[i];
 		if (indexOf(cN,"_px")>0) tableColumnRenameOrReplace(cN,replace(cN,"_px","\(px\)"));
@@ -498,7 +500,7 @@ macro "Add Additional Geometries to Table" {
 	}
 	Table.update;
 	tableHeadings = Table.headings;
-	tableColumns = split(Table.headings);
+	tableColumns = split(Table.headings, "\t");
 	setBatchMode("exit & display"); /* exit batch mode */
 	showStatus("Additional Geometries Macro Finished for: " + nTable + " Objects, " + lengthOf(tableColumns) + " columns");
 	Table.rename(tableTitle,"Results"); /* column headers export not supported for tables otherwise  :-( */
